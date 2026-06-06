@@ -57,6 +57,8 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     var showInsulinDialog by remember { mutableStateOf(false) }
     var showGlucoseDialog by remember { mutableStateOf(false) }
     var showReminderDialog by remember { mutableStateOf(false) }
+    var showRefillFormDialog by remember { mutableStateOf(false) }
+    var editingRefillLog by remember { mutableStateOf<CartridgeRefillLog?>(null) }
 
     Scaffold(
         bottomBar = {
@@ -104,6 +106,10 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                     onLogGlucoseClick = {
                         viewModel.resetGlucoseForm()
                         showGlucoseDialog = true
+                    },
+                    onRefillClick = {
+                        editingRefillLog = null
+                        showRefillFormDialog = true
                     }
                 )
                 AppScreen.HISTORY -> HistoryScreen(
@@ -115,6 +121,10 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                     onEditGlucose = { reading ->
                         viewModel.prepareEditGlucose(reading)
                         showGlucoseDialog = true
+                    },
+                    onEditRefill = { log ->
+                        editingRefillLog = log
+                        showRefillFormDialog = true
                     }
                 )
                 AppScreen.REMINDERS -> RemindersScreen(
@@ -158,16 +168,25 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     }
 
     if (showReminderDialog) {
-        ReminderFormDialog(
-            viewModel = viewModel,
-            onDismiss = { showReminderDialog = false },
-            onSave = {
-                viewModel.saveReminder()
-                showReminderDialog = false
-            }
-        )
-    }
-}
+         ReminderFormDialog(
+             viewModel = viewModel,
+             onDismiss = { showReminderDialog = false },
+             onSave = {
+                 viewModel.saveReminder()
+                 showReminderDialog = false
+             }
+         )
+     }
+
+     if (showRefillFormDialog) {
+         RefillFormDialog(
+             viewModel = viewModel,
+             editingLog = editingRefillLog,
+             onDismiss = { showRefillFormDialog = false },
+             onSave = { showRefillFormDialog = false }
+         )
+     }
+ }
 
 private data class NavigationItem(
     val title: String,
@@ -183,7 +202,8 @@ private data class NavigationItem(
 fun HomeScreen(
     viewModel: GlucoViewModel,
     onLogInsulinClick: () -> Unit,
-    onLogGlucoseClick: () -> Unit
+    onLogGlucoseClick: () -> Unit,
+    onRefillClick: () -> Unit
 ) {
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
     val rawInsulin by viewModel.insulinRecords.collectAsStateWithLifecycle()
@@ -192,8 +212,7 @@ fun HomeScreen(
 
     val reportsData = viewModel.getReportsData(rawInsulin, rawGlucose, profile)
 
-    var showRefillDialog by remember { mutableStateOf(false) }
-    var customRefillAmount by remember { mutableStateOf("300") }
+    var showProfileEditDialog by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -213,12 +232,29 @@ fun HomeScreen(
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "Clean Stable Health",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Clean Stable Health",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
+                        IconButton(
+                            onClick = { showProfileEditDialog = true },
+                            modifier = Modifier.size(36.dp).testTag("home_edit_profile_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile Quick-Action",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Hello, ${profile.userName.ifEmpty { "Health Champion" }}!",
@@ -355,7 +391,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(
-                                onClick = { showRefillDialog = true },
+                                onClick = { onRefillClick() },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.error,
                                     contentColor = MaterialTheme.colorScheme.onError
@@ -404,7 +440,7 @@ fun HomeScreen(
                         
                         // Refill button
                         Button(
-                            onClick = { showRefillDialog = true },
+                            onClick = { onRefillClick() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -480,97 +516,6 @@ fun HomeScreen(
                 }
             }
 
-            // Dialog for choosing refill size or change cartridge
-            if (showRefillDialog) {
-                androidx.compose.ui.window.Dialog(
-                    onDismissRequest = { showRefillDialog = false }
-                ) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(18.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Text(
-                                "Change / Refill Cartridge",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "Select a preset pen/pump cartridge capacity size or enter dynamic capacity to reset your insulin remaining balance.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-
-                            // Quick choices
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf("100", "150", "300").forEach { preset ->
-                                    val isSelected = customRefillAmount == preset
-                                    Button(
-                                        onClick = { customRefillAmount = preset },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(vertical = 4.dp)
-                                    ) {
-                                        Text("${preset}U", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-
-                            // Custom Input field
-                            OutlinedTextField(
-                                value = customRefillAmount,
-                                onValueChange = { customRefillAmount = it.filter { char -> char.isDigit() } },
-                                label = { Text("Custom Capacity (Units)") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                trailingIcon = { Text("Units", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 8.dp)) },
-                                singleLine = true,
-                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                                )
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedButton(
-                                    onClick = { showRefillDialog = false },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("Cancel", fontSize = 12.sp)
-                                }
-                                Button(
-                                    onClick = {
-                                        val amt = customRefillAmount.toDoubleOrNull() ?: 300.0
-                                        viewModel.refillCartridge(amt)
-                                        showRefillDialog = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text("Refill Now", fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         // Today's Circular Dashboard Stats
@@ -735,6 +680,17 @@ fun HomeScreen(
             }
         }
     }
+
+    if (showProfileEditDialog) {
+        ProfileEditDialog(
+            currentProfile = profile,
+            onDismiss = { showProfileEditDialog = false },
+            onSave = { updatedProfile ->
+                viewModel.saveProfile(updatedProfile)
+                showProfileEditDialog = false
+            }
+        )
+    }
 }
 
 // ==========================================
@@ -745,7 +701,8 @@ fun HomeScreen(
 fun HistoryScreen(
     viewModel: GlucoViewModel,
     onEditInsulin: (InsulinRecord) -> Unit,
-    onEditGlucose: (GlucoseReading) -> Unit
+    onEditGlucose: (GlucoseReading) -> Unit,
+    onEditRefill: (CartridgeRefillLog) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Insulin, 1 = Glucose, 2 = Refills
 
@@ -942,6 +899,7 @@ fun HistoryScreen(
                     items(filteredRefillLogs) { log ->
                         RefillLogCard(
                             log = log,
+                            onEdit = { onEditRefill(log) },
                             onDelete = { viewModel.deleteRefillLog(log) }
                         )
                     }
@@ -954,6 +912,7 @@ fun HistoryScreen(
 @Composable
 fun RefillLogCard(
     log: CartridgeRefillLog,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -1016,13 +975,28 @@ fun RefillLogCard(
                 }
             }
 
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Refill Log Entry",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.testTag("edit_refill_log_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Refill Log",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Refill Log Entry",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -2439,3 +2413,348 @@ fun ReminderFormDialog(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileEditDialog(
+    currentProfile: UserProfile,
+    onDismiss: () -> Unit,
+    onSave: (UserProfile) -> Unit
+) {
+    var uName by remember { mutableStateOf(currentProfile.userName) }
+    var dName by remember { mutableStateOf(currentProfile.doctorName) }
+    var dMail by remember { mutableStateOf(currentProfile.doctorEmail) }
+    var dPhone by remember { mutableStateOf(currentProfile.doctorPhone) }
+    var tMin by remember { mutableStateOf(currentProfile.targetGlucoseMin.toString()) }
+    var tMax by remember { mutableStateOf(currentProfile.targetGlucoseMax.toString()) }
+    var gUnit by remember { mutableStateOf(currentProfile.glucoseUnit) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+                .testTag("profile_edit_dialog"),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Edit Active Profile",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                OutlinedTextField(
+                    value = uName,
+                    onValueChange = { uName = it },
+                    label = { Text("Patient Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = dName,
+                    onValueChange = { dName = it },
+                    label = { Text("Doctor Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = dMail,
+                        onValueChange = { dMail = it },
+                        label = { Text("Doc Email") },
+                        modifier = Modifier.weight(1.1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = dPhone,
+                        onValueChange = { dPhone = it },
+                        label = { Text("Doc Phone") },
+                        modifier = Modifier.weight(0.9f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = tMin,
+                        onValueChange = { tMin = it },
+                        label = { Text("Low Target") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = tMax,
+                        onValueChange = { tMax = it },
+                        label = { Text("High Target") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+
+                    Column(modifier = Modifier.weight(1.1f)) {
+                        Text(
+                            "Unit",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(38.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                .padding(2.dp)
+                        ) {
+                            val units = listOf("mg/dL", "mmol/L")
+                            units.forEach { unit ->
+                                val isSelected = gUnit == unit
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                            RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { gUnit = unit },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = unit,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Button(
+                        onClick = {
+                            val pMin = tMin.toDoubleOrNull() ?: 70.0
+                            val pMax = tMax.toDoubleOrNull() ?: 140.0
+                            onSave(
+                                currentProfile.copy(
+                                    userName = uName.ifEmpty { "Patient" },
+                                    doctorName = dName,
+                                    doctorEmail = dMail,
+                                    doctorPhone = dPhone,
+                                    targetGlucoseMin = pMin,
+                                    targetGlucoseMax = pMax,
+                                    glucoseUnit = gUnit
+                                )
+                            )
+                        }
+                    ) {
+                        Text("Save Profile")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RefillFormDialog(
+    viewModel: GlucoViewModel,
+    editingLog: CartridgeRefillLog? = null,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    var capacity by remember { mutableStateOf(editingLog?.capacity?.toInt()?.toString() ?: "300") }
+    var date by remember { mutableStateOf(if (editingLog != null) viewModel.formatEpochToDateOnly(editingLog.dateTimeMillis) else viewModel.formatEpochToDateOnly(System.currentTimeMillis())) }
+    var time by remember { mutableStateOf(if (editingLog != null) viewModel.formatEpochToTimeOnly(editingLog.dateTimeMillis) else viewModel.formatEpochToTimeOnly(System.currentTimeMillis())) }
+    var actionType by remember { mutableStateOf(editingLog?.actionType ?: "Refill") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+                .testTag("refill_form_dialog"),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = if (editingLog != null) "Edit Cartridge Log" else "Refill / Change Cartridge",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "Specify size capacity, date and time of the insulin cartridge change/refill.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+
+                // Quick choices
+                if (editingLog == null) {
+                    Text("Preset Sizes", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("100", "150", "300").forEach { preset ->
+                            val isSelected = capacity == preset
+                            Button(
+                                onClick = { capacity = preset },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                Text("${preset}U", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // Capacity Input
+                OutlinedTextField(
+                    value = capacity,
+                    onValueChange = { capacity = it.filter { char -> char.isDigit() } },
+                    label = { Text("Capacity Size (Units)") },
+                    modifier = Modifier.fillMaxWidth().testTag("refill_capacity_input"),
+                    shape = RoundedCornerShape(10.dp),
+                    trailingIcon = { Text("Units", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(end = 8.dp)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                // Date & Time inputs
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = date,
+                        onValueChange = { date = it },
+                        label = { Text("Date (YYYY-MM-DD)") },
+                        modifier = Modifier.weight(1.2f).testTag("refill_date_input"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    OutlinedTextField(
+                        value = time,
+                        onValueChange = { time = it },
+                        label = { Text("Time (HH:MM)") },
+                        modifier = Modifier.weight(0.8f).testTag("refill_time_input"),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+
+                // Action Type Selector
+                var showActionDropdown by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = actionType,
+                        onValueChange = { actionType = it },
+                        label = { Text("Log Event Title / Action") },
+                        modifier = Modifier.fillMaxWidth().testTag("refill_action_type_input"),
+                        shape = RoundedCornerShape(10.dp),
+                        trailingIcon = {
+                            IconButton(onClick = { showActionDropdown = !showActionDropdown }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                            }
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = showActionDropdown,
+                        onDismissRequest = { showActionDropdown = false }
+                    ) {
+                        listOf("Refill", "Change (Empty)", "Size Change", "Pen Inserted").forEach { title ->
+                            DropdownMenuItem(
+                                text = { Text(title) },
+                                onClick = {
+                                    actionType = title
+                                    showActionDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Button(
+                        onClick = {
+                            val capacityVal = capacity.toDoubleOrNull() ?: 300.0
+                            if (editingLog != null) {
+                                val calendar = viewModel.composeCalendarFromDateStrAndTimeStr(date, time)
+                                val updatedLog = editingLog.copy(
+                                    capacity = capacityVal,
+                                    dateTimeMillis = calendar.timeInMillis,
+                                    actionType = actionType
+                                )
+                                viewModel.saveRefillLog(updatedLog)
+                            } else {
+                                viewModel.refillCartridge(capacityVal, date, time)
+                            }
+                            onSave()
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(if (editingLog != null) "Update Log" else "Update Cartridge")
+                    }
+                }
+            }
+        }
+    }
+}
+

@@ -414,11 +414,12 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun refillCartridge(capacity: Double) {
+    fun refillCartridge(capacity: Double, dateStr: String, timeStr: String) {
         viewModelScope.launch {
             val currentProf = repository.getProfileSync()
             if (currentProf != null) {
                 val remainingBefore = currentProf.cartridgeRemaining
+                val calendar = composeCalendarFromDateStrAndTimeStr(dateStr, timeStr)
                 repository.insertOrUpdateProfile(
                     currentProf.copy(
                         cartridgeCapacity = capacity,
@@ -429,11 +430,17 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                     CartridgeRefillLog(
                         capacity = capacity,
                         remainingBefore = remainingBefore,
-                        dateTimeMillis = System.currentTimeMillis(),
+                        dateTimeMillis = calendar.timeInMillis,
                         actionType = if (remainingBefore <= 0.01) "Change (Empty)" else if (capacity != currentProf.cartridgeCapacity) "Size Change" else "Refill"
                     )
                 )
             }
+        }
+    }
+
+    fun saveRefillLog(log: CartridgeRefillLog) {
+        viewModelScope.launch {
+            repository.insertRefillLog(log)
         }
     }
 
@@ -474,7 +481,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         return sdf.format(calendar.time)
     }
 
-    private fun composeCalendarFromDateStrAndTimeStr(dateStr: String, timeStr: String): Calendar {
+    fun composeCalendarFromDateStrAndTimeStr(dateStr: String, timeStr: String): Calendar {
         val calendar = Calendar.getInstance()
         try {
             val dateParts = dateStr.split("-")
