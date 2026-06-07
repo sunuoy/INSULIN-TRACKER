@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,11 +38,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
+import java.util.Calendar
 import com.example.data.model.GlucoseReading
 import com.example.data.model.InsulinRecord
 import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
+import com.example.data.model.BloodPressureRecord
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.GlucoViewModel
 import java.text.SimpleDateFormat
@@ -59,6 +64,7 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     var showReminderDialog by remember { mutableStateOf(false) }
     var showRefillFormDialog by remember { mutableStateOf(false) }
     var editingRefillLog by remember { mutableStateOf<CartridgeRefillLog?>(null) }
+    var showBloodPressureDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -110,6 +116,10 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                     onRefillClick = {
                         editingRefillLog = null
                         showRefillFormDialog = true
+                    },
+                    onLogBloodPressureClick = {
+                        viewModel.resetBloodPressureForm()
+                        showBloodPressureDialog = true
                     }
                 )
                 AppScreen.HISTORY -> HistoryScreen(
@@ -125,6 +135,26 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                     onEditRefill = { log ->
                         editingRefillLog = log
                         showRefillFormDialog = true
+                    },
+                    onEditBloodPressure = { record ->
+                        viewModel.prepareEditBloodPressure(record)
+                        showBloodPressureDialog = true
+                    },
+                    onAddInsulinClick = {
+                        viewModel.resetInsulinForm()
+                        showInsulinDialog = true
+                    },
+                    onAddGlucoseClick = {
+                        viewModel.resetGlucoseForm()
+                        showGlucoseDialog = true
+                    },
+                    onAddRefillClick = {
+                        editingRefillLog = null
+                        showRefillFormDialog = true
+                    },
+                    onAddBloodPressureClick = {
+                        viewModel.resetBloodPressureForm()
+                        showBloodPressureDialog = true
                     }
                 )
                 AppScreen.REMINDERS -> RemindersScreen(
@@ -186,6 +216,17 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
              onSave = { showRefillFormDialog = false }
          )
      }
+
+     if (showBloodPressureDialog) {
+         BloodPressureFormDialog(
+             viewModel = viewModel,
+             onDismiss = { showBloodPressureDialog = false },
+             onSave = {
+                 viewModel.saveBloodPressureRecord()
+                 showBloodPressureDialog = false
+             }
+         )
+     }
  }
 
 private data class NavigationItem(
@@ -203,7 +244,8 @@ fun HomeScreen(
     viewModel: GlucoViewModel,
     onLogInsulinClick: () -> Unit,
     onLogGlucoseClick: () -> Unit,
-    onRefillClick: () -> Unit
+    onRefillClick: () -> Unit,
+    onLogBloodPressureClick: () -> Unit
 ) {
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
     val rawInsulin by viewModel.insulinRecords.collectAsStateWithLifecycle()
@@ -335,6 +377,76 @@ fun HomeScreen(
                         Column {
                             Text("Glucose Level", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                             Text("Log blood sugar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(0.7f))
+                        }
+                    }
+                }
+            }
+        }
+
+        // Action Buttons Row 2 (Blood Pressure & Cartridge Refill)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Log Blood Pressure Card
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(115.dp)
+                        .clickable { onLogBloodPressureClick() }
+                        .testTag("home_add_bp_button"),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Favorite, contentDescription = "Blood Pressure Icon", tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                        Column {
+                            Text("Blood Pressure", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text("Systolic & Diastolic", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.7f))
+                        }
+                    }
+                }
+
+                // Log Cartridge Refill Card
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(115.dp)
+                        .clickable { onRefillClick() }
+                        .testTag("home_add_refill_button"),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(MaterialTheme.colorScheme.secondary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refill Icon", tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                        Column {
+                            Text("Cartridge Refill", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text("Change capacity size", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.7f))
                         }
                     }
                 }
@@ -702,18 +814,35 @@ fun HistoryScreen(
     viewModel: GlucoViewModel,
     onEditInsulin: (InsulinRecord) -> Unit,
     onEditGlucose: (GlucoseReading) -> Unit,
-    onEditRefill: (CartridgeRefillLog) -> Unit
+    onEditRefill: (CartridgeRefillLog) -> Unit,
+    onEditBloodPressure: (BloodPressureRecord) -> Unit,
+    onAddInsulinClick: () -> Unit,
+    onAddGlucoseClick: () -> Unit,
+    onAddRefillClick: () -> Unit,
+    onAddBloodPressureClick: () -> Unit
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Insulin, 1 = Glucose, 2 = Refills
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Insulin, 1 = Glucose, 2 = BP, 3 = Refills
 
     val insulinList by viewModel.filteredInsulinRecords.collectAsStateWithLifecycle(initialValue = emptyList())
     val glucoseList by viewModel.filteredGlucoseReadings.collectAsStateWithLifecycle(initialValue = emptyList())
+    val bpList by viewModel.filteredBloodPressureRecords.collectAsStateWithLifecycle(initialValue = emptyList())
     val refillLogs by viewModel.refillLogs.collectAsStateWithLifecycle(initialValue = emptyList())
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
 
     val insulinFilter by viewModel.insulinTypeFilter.collectAsStateWithLifecycle()
     val glucoseFilter by viewModel.mealContextFilter.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+
+    var bpFilter by remember { mutableStateOf("All") }
+    val filteredBpList = remember(bpList, bpFilter) {
+        when (bpFilter) {
+            "Normal" -> bpList.filter { it.systolic < 120 && it.diastolic < 80 }
+            "Elevated" -> bpList.filter { (it.systolic in 120..129) && it.diastolic < 80 }
+            "High BP" -> bpList.filter { it.systolic >= 130 || it.diastolic >= 80 }
+            "Low BP" -> bpList.filter { it.systolic < 90 || it.diastolic < 60 }
+            else -> bpList
+        }
+    }
 
     val filteredRefillLogs = remember(refillLogs, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -726,11 +855,40 @@ fun HistoryScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("history_screen")
-    ) {
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    when (selectedTab) {
+                        0 -> onAddInsulinClick()
+                        1 -> onAddGlucoseClick()
+                        2 -> onAddBloodPressureClick()
+                        3 -> onAddRefillClick()
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.testTag("history_add_fab")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = when (selectedTab) {
+                        0 -> "Add Insulin Log"
+                        1 -> "Add Glucose Reading"
+                        2 -> "Add Blood Pressure"
+                        else -> "Add Cartridge Refill"
+                    }
+                )
+            }
+        },
+        containerColor = Color.Transparent
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .testTag("history_screen")
+        ) {
         // App Header
         Row(
             modifier = Modifier
@@ -763,7 +921,11 @@ fun HistoryScreen(
         )
 
         // Navigation Tabs for Log types
-        TabRow(selectedTabIndex = selectedTab) {
+        ScrollableTabRow(
+            selectedTabIndex = selectedTab,
+            edgePadding = 0.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
@@ -777,20 +939,24 @@ fun HistoryScreen(
             Tab(
                 selected = selectedTab == 2,
                 onClick = { selectedTab = 2 },
-                text = { Text("Refill Logs", fontWeight = FontWeight.Bold) }
+                text = { Text("BP Logs", fontWeight = FontWeight.Bold) }
+            )
+            Tab(
+                selected = selectedTab == 3,
+                onClick = { selectedTab = 3 },
+                text = { Text("Refills", fontWeight = FontWeight.Bold) }
             )
         }
 
         // SubFilter category chips based on active tab
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (selectedTab == 2) {
-                Spacer(modifier = Modifier.weight(1f))
+        if (selectedTab == 3) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 if (filteredRefillLogs.isNotEmpty()) {
                     TextButton(
                         onClick = { viewModel.clearAllRefillLogs() },
@@ -801,7 +967,17 @@ fun HistoryScreen(
                         Text("Clear All History", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-            } else {
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(16.dp))
                 Text("Filters:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
 
                 if (selectedTab == 0) {
@@ -814,7 +990,7 @@ fun HistoryScreen(
                             label = { Text(filter, fontSize = 11.sp) }
                         )
                     }
-                } else {
+                } else if (selectedTab == 1) {
                     // Glucose Meal Contexts Filters
                     listOf("All", "Fasting", "Before Meal", "After Meal", "Bedtime").forEach { filter ->
                         val active = glucoseFilter == filter
@@ -824,7 +1000,18 @@ fun HistoryScreen(
                             label = { Text(filter, fontSize = 11.sp) }
                         )
                     }
+                } else if (selectedTab == 2) {
+                    // BP Level Filters
+                    listOf("All", "Normal", "Elevated", "High BP", "Low BP").forEach { filter ->
+                        val active = bpFilter == filter
+                        FilterChip(
+                            selected = active,
+                            onClick = { bpFilter = filter },
+                            label = { Text(filter, fontSize = 11.sp) }
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.width(16.dp))
             }
         }
 
@@ -833,10 +1020,75 @@ fun HistoryScreen(
             // Insulin Records List
             if (insulinList.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.History, contentDescription = "Empty Log", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(0.5f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("No matching insulin entries found.", color = MaterialTheme.colorScheme.outline)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                            .testTag("insulin_empty_state_card"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Vaccines,
+                                    contentDescription = "Empty Insulin Log",
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "No Insulin Logs",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Keep track of your injected rapid, short, or long-acting insulin doses to manage glucose levels effectively.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                            }
+                            Button(
+                                onClick = onAddInsulinClick,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Log Insulin Dose",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Log Insulin Dose",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             } else {
@@ -858,10 +1110,75 @@ fun HistoryScreen(
             // Glucose Readings List
             if (glucoseList.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.WaterDrop, contentDescription = "Empty Glucose Log", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(0.5f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("No matching sugar entries logged.", color = MaterialTheme.colorScheme.outline)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                            .testTag("glucose_empty_state_card"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.WaterDrop,
+                                    contentDescription = "Empty Glucose Log",
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "No Glucose Readings",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Logging sugar levels (fasting, pre/post-meal, bedtime) provides vital clarity to evaluate your stable health progress.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                            }
+                            Button(
+                                onClick = onAddGlucoseClick,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onTertiary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Log Sugar Levels",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Log Sugar Level",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             } else {
@@ -880,14 +1197,169 @@ fun HistoryScreen(
                     }
                 }
             }
+        } else if (selectedTab == 2) {
+            // Blood Pressure Logs List
+            if (filteredBpList.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                            .testTag("bp_empty_state_card"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "Empty BP Logs",
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "No BP Records",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Logging blood pressure readings and heart rate helps keep track of cardiovascular health trends alongside sugar logs.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                            }
+                            Button(
+                                onClick = onAddBloodPressureClick,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Log Blood Pressure",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Log Blood Pressure",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(filteredBpList) { record ->
+                        BloodPressureRecordCard(
+                            record = record,
+                            onEdit = { onEditBloodPressure(record) },
+                            onDelete = { viewModel.deleteBloodPressureRecord(record) }
+                        )
+                    }
+                }
+            }
         } else {
             // Refill Logs List
             if (filteredRefillLogs.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Vaccines, contentDescription = "Empty Refill Log", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(0.4f))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("No cartridge refills or changes logged.", color = MaterialTheme.colorScheme.outline)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                            .testTag("refills_empty_state_card"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Empty Refill Logs",
+                                    modifier = Modifier.size(36.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "No Refill History",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Record cartridge replacements or pen refills to ensure accurate remaining-insulin capacity readings.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                            }
+                            Button(
+                                onClick = onAddRefillClick,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary,
+                                    contentColor = MaterialTheme.colorScheme.onSecondary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Log Refill",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Log Cartridge Refill",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
             } else {
@@ -903,6 +1375,132 @@ fun HistoryScreen(
                             onDelete = { viewModel.deleteRefillLog(log) }
                         )
                     }
+                }
+            }
+        }
+    }
+}
+}
+
+@Composable
+fun BloodPressureRecordCard(
+    record: BloodPressureRecord,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val sys = record.systolic
+    val dia = record.diastolic
+    val (statusLabel, statusColor) = when {
+        sys >= 140 || dia >= 90 -> "High (Stage 2)" to Color(0xFFE53935)
+        sys in 130..139 || dia in 80..89 -> "High (Stage 1)" to Color(0xFFFB8C00)
+        sys in 120..129 && dia < 80 -> "Elevated" to Color(0xFFFDD835)
+        sys < 90 || dia < 60 -> "Low" to Color(0xFF00ACC1)
+        else -> "Normal" to Color(0xFF4CAF50)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(statusColor.copy(alpha = 0.12f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "BP Status Indicator Log",
+                        tint = statusColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "$sys/$dia",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "mmHg",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                        Card(
+                            shape = RoundedCornerShape(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = statusColor.copy(alpha = 0.15f))
+                        ) {
+                            Text(
+                                text = statusLabel,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = statusColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Pulse: ${record.pulse} bpm",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
+                    )
+
+                    if (record.notes.isNotEmpty()) {
+                        Text(
+                            text = record.notes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+
+                    val sdf = remember { SimpleDateFormat("MMM dd, yyyy h:mm a", Locale.getDefault()) }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = sdf.format(Date(record.dateTimeMillis)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.testTag("edit_bp_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit BP Record",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete BP Record",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
@@ -1355,10 +1953,42 @@ fun ReminderCard(
 fun ReportsScreen(viewModel: GlucoViewModel) {
     val rawInsulin by viewModel.insulinRecords.collectAsStateWithLifecycle()
     val rawGlucose by viewModel.glucoseReadings.collectAsStateWithLifecycle()
+    val rawBp by viewModel.bloodPressureRecords.collectAsStateWithLifecycle()
+    val rawRefills by viewModel.refillLogs.collectAsStateWithLifecycle()
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+
+    val pdfIncludeGlucose by viewModel.pdfIncludeGlucose.collectAsStateWithLifecycle()
+    val pdfIncludeInsulin by viewModel.pdfIncludeInsulin.collectAsStateWithLifecycle()
+    val pdfIncludeBp by viewModel.pdfIncludeBp.collectAsStateWithLifecycle()
+    val pdfIncludeRefills by viewModel.pdfIncludeRefills.collectAsStateWithLifecycle()
+    val pdfDateRange by viewModel.pdfDateRange.collectAsStateWithLifecycle()
+    val pdfCustomFromDate by viewModel.pdfCustomFromDate.collectAsStateWithLifecycle()
+    val pdfCustomToDate by viewModel.pdfCustomToDate.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val summary = viewModel.getReportsData(rawInsulin, rawGlucose, profile)
+
+    fun showDatePicker(initialDateStr: String, onDateSelected: (String) -> Unit) {
+        val calendar = java.util.Calendar.getInstance()
+        val parts = initialDateStr.split("-")
+        if (parts.size == 3) {
+            try {
+                calendar.set(java.util.Calendar.YEAR, parts[0].toInt())
+                calendar.set(java.util.Calendar.MONTH, parts[1].toInt() - 1)
+                calendar.set(java.util.Calendar.DAY_OF_MONTH, parts[2].toInt())
+            } catch (e: Exception) {}
+        }
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val selectedDate = String.format(java.util.Locale.getDefault(), "%d-%02d-%02d", year, month + 1, dayOfMonth)
+                onDateSelected(selectedDate)
+            },
+            calendar.get(java.util.Calendar.YEAR),
+            calendar.get(java.util.Calendar.MONTH),
+            calendar.get(java.util.Calendar.DAY_OF_MONTH)
+        ).show()
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -1541,44 +2171,284 @@ fun ReportsScreen(viewModel: GlucoViewModel) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("reports_share_doctor_card"),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                shape = RoundedCornerShape(16.dp)
+                    .testTag("reports_custom_export_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Share,
-                        contentDescription = "Share dataIcon",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Share with your Doctor", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Generates a comprehensive clinical profile including TIR, averages, daily logs, and dosage CSV configurations to send directly via email or messaging.",
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.8f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            val payload = viewModel.generateExportContent(rawInsulin, rawGlucose, profile)
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "GlucoLog Diabetic Tracking Clinical Report - ${profile.userName}")
-                                putExtra(Intent.EXTRA_TEXT, payload)
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share Clinical Logs"))
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("Export Log & Share Report")
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share Icon",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Column {
+                            Text(
+                                "Clinical Report Builder",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Configure your logs filter and export format",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                    }
+
+                    Divider()
+
+                    // Filter Date Range section
+                    Text(
+                        "Report Date Range:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val ranges = listOf("Last 7 Days", "Last 14 Days", "Last 30 Days", "All", "Custom Range")
+                        ranges.forEach { range ->
+                            FilterChip(
+                                selected = pdfDateRange == range,
+                                onClick = { viewModel.setPdfDateRange(range) },
+                                label = { Text(range, fontSize = 11.sp) },
+                                leadingIcon = {
+                                    if (pdfDateRange == range) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = pdfDateRange == "Custom Range",
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "Manual Date Duration Selection:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = pdfCustomFromDate,
+                                    onValueChange = { viewModel.setPdfCustomFromDate(it) },
+                                    label = { Text("From (YYYY-MM-DD)", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f).testTag("pdf_custom_from_date"),
+                                    trailingIcon = {
+                                        IconButton(onClick = {
+                                            showDatePicker(pdfCustomFromDate) {
+                                                viewModel.setPdfCustomFromDate(it)
+                                            }
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.DateRange,
+                                                contentDescription = "Select Start Date"
+                                            )
+                                        }
+                                    }
+                                )
+
+                                OutlinedTextField(
+                                    value = pdfCustomToDate,
+                                    onValueChange = { viewModel.setPdfCustomToDate(it) },
+                                    label = { Text("To (YYYY-MM-DD)", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f).testTag("pdf_custom_to_date"),
+                                    trailingIcon = {
+                                        IconButton(onClick = {
+                                            showDatePicker(pdfCustomToDate) {
+                                                viewModel.setPdfCustomToDate(it)
+                                            }
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.DateRange,
+                                                contentDescription = "Select End Date"
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // Choose Log categories to include
+                    Text(
+                        "Include Health Tracker Logs:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = pdfIncludeGlucose,
+                                onClick = { viewModel.setPdfIncludeGlucose(!pdfIncludeGlucose) },
+                                label = { Text("Glucose", fontSize = 11.sp) },
+                                leadingIcon = {
+                                    if (pdfIncludeGlucose) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = pdfIncludeInsulin,
+                                onClick = { viewModel.setPdfIncludeInsulin(!pdfIncludeInsulin) },
+                                label = { Text("Insulin", fontSize = 11.sp) },
+                                leadingIcon = {
+                                    if (pdfIncludeInsulin) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = pdfIncludeBp,
+                                onClick = { viewModel.setPdfIncludeBp(!pdfIncludeBp) },
+                                label = { Text("Blood Pressure", fontSize = 11.sp) },
+                                leadingIcon = {
+                                    if (pdfIncludeBp) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterChip(
+                                selected = pdfIncludeRefills,
+                                onClick = { viewModel.setPdfIncludeRefills(!pdfIncludeRefills) },
+                                label = { Text("Cartridge Refills", fontSize = 11.sp) },
+                                leadingIcon = {
+                                    if (pdfIncludeRefills) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Main action buttons
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = {
+                                try {
+                                    val file = viewModel.generatePdfReport(
+                                        records = rawInsulin,
+                                        readings = rawGlucose,
+                                        bpRecords = rawBp,
+                                        refills = rawRefills,
+                                        profile = profile
+                                    )
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file
+                                    )
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/pdf"
+                                        putExtra(Intent.EXTRA_SUBJECT, "GlucoLog Clinical PDF Report - ${profile.userName}")
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Clinical PDF Report"))
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Error producing PDF: ${e.localizedMessage}",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("export_pdf_button"),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "PDF Icon",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Export Clinical Report (PDF)")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val payload = viewModel.generateExportContent(rawInsulin, rawGlucose, profile)
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, "GlucoLog CSV Data Log - ${profile.userName}")
+                                    putExtra(Intent.EXTRA_TEXT, payload)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share CSV Plain Text"))
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("export_csv_button"),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.List,
+                                contentDescription = "CSV Text Icon",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Share CSV / Text Format")
+                        }
                     }
                 }
             }
@@ -1987,6 +2857,202 @@ fun ProfileScreen(viewModel: GlucoViewModel) {
                 }
             }
         }
+
+        // Simulated System Clock Dashboard
+        item {
+            val customOffset by viewModel.customTimeOffsetMillis.collectAsStateWithLifecycle()
+            var currentVirtualTime by remember { mutableStateOf(viewModel.getCurrentTimeMillis()) }
+            var showSetTimeDialog by remember { mutableStateOf(false) }
+
+            LaunchedEffect(customOffset) {
+                while (true) {
+                    currentVirtualTime = viewModel.getCurrentTimeMillis()
+                    delay(1000L)
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("simulated_time_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiaryContainer)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = "Simulated Time Icon",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Simulated System Clock",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        if (customOffset != 0L) {
+                            Box(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Offset Active",
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "Current App Time: ${viewModel.formatEpochToDate(currentVirtualTime)}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (customOffset != 0L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        text = "Shift or fast-forward the application's clock to simulate future or past events (e.g., checking medication log history or reminder schedules).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+
+                    // Presets
+                    Text(
+                        text = "Preset Time Shifters:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = { viewModel.setSystemTime(viewModel.getCurrentTimeMillis() + 3600000L) }, // +1 Hour
+                            label = { Text("+1 Hour") }
+                        )
+                        AssistChip(
+                            onClick = { viewModel.setSystemTime(viewModel.getCurrentTimeMillis() + 10800000L) }, // +3 Hours
+                            label = { Text("+3 Hours") }
+                        )
+                        AssistChip(
+                            onClick = { viewModel.setSystemTime(viewModel.getCurrentTimeMillis() + 86400000L) }, // +1 Day
+                            label = { Text("+1 Day") }
+                        )
+                        AssistChip(
+                            onClick = { viewModel.setSystemTime(viewModel.getCurrentTimeMillis() + 604800000L) }, // +7 Days
+                            label = { Text("+7 Days") }
+                        )
+                        AssistChip(
+                            onClick = { viewModel.setSystemTime(viewModel.getCurrentTimeMillis() - 86400000L) }, // -1 Day
+                            label = { Text("-1 Day") }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.resetSystemTime() },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            enabled = customOffset != 0L
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Reset Clock")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Reset clock", fontSize = 12.sp)
+                        }
+
+                        Button(
+                            onClick = { showSetTimeDialog = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.DateRange, contentDescription = "Specify Time")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Custom...", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            if (showSetTimeDialog) {
+                var inputDate by remember { mutableStateOf(viewModel.formatEpochToDateOnly(viewModel.getCurrentTimeMillis())) }
+                var inputTime by remember { mutableStateOf(viewModel.formatEpochToTimeOnly(viewModel.getCurrentTimeMillis())) }
+
+                Dialog(onDismissRequest = { showSetTimeDialog = false }) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                "Specify Custom Date & Time",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            OutlinedTextField(
+                                value = inputDate,
+                                onValueChange = { inputDate = it },
+                                label = { Text("Date (YYYY-MM-DD)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            OutlinedTextField(
+                                value = inputTime,
+                                onValueChange = { inputTime = it },
+                                label = { Text("Time (HH:MM)") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(onClick = { showSetTimeDialog = false }) {
+                                    Text("Cancel")
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = {
+                                        val calendar = viewModel.composeCalendarFromDateStrAndTimeStr(inputDate, inputTime)
+                                        viewModel.setSystemTime(calendar.timeInMillis)
+                                        showSetTimeDialog = false
+                                    }
+                                ) {
+                                    Text("Apply")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
         item {
             Spacer(modifier = Modifier.height(24.dp))
@@ -2006,8 +3072,8 @@ fun InsulinFormDialog(
 ) {
     var type by remember { mutableStateOf(viewModel.insType.ifEmpty { "Rapid-acting" }) }
     var dose by remember { mutableStateOf(viewModel.insDose) }
-    var date by remember { mutableStateOf(viewModel.insDate.ifEmpty { viewModel.formatEpochToDateOnly(System.currentTimeMillis()) }) }
-    var time by remember { mutableStateOf(viewModel.insTime.ifEmpty { viewModel.formatEpochToTimeOnly(System.currentTimeMillis()) }) }
+    var date by remember { mutableStateOf(viewModel.insDate.ifEmpty { viewModel.formatEpochToDateOnly(viewModel.getCurrentTimeMillis()) }) }
+    var time by remember { mutableStateOf(viewModel.insTime.ifEmpty { viewModel.formatEpochToTimeOnly(viewModel.getCurrentTimeMillis()) }) }
     var notes by remember { mutableStateOf(viewModel.insNotes) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -2117,14 +3183,14 @@ fun InsulinFormDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            viewModel.insType = type
-                            viewModel.insDose = dose
-                            viewModel.insDate = date
-                            viewModel.insTime = time
-                            viewModel.insNotes = notes
+                            viewModel.insType = type.trim()
+                            viewModel.insDose = dose.trim()
+                            viewModel.insDate = date.trim()
+                            viewModel.insTime = time.trim()
+                            viewModel.insNotes = notes.trim()
                             onSave()
                         },
-                        enabled = dose.toDoubleOrNull() != null
+                        enabled = dose.trim().toDoubleOrNull() != null
                     ) {
                         Text("Save")
                     }
@@ -2143,8 +3209,8 @@ fun GlucoseFormDialog(
 ) {
     var value by remember { mutableStateOf(viewModel.glucValue) }
     var context by remember { mutableStateOf(viewModel.glucMealContext.ifEmpty { "Fasting" }) }
-    var date by remember { mutableStateOf(viewModel.glucDate.ifEmpty { viewModel.formatEpochToDateOnly(System.currentTimeMillis()) }) }
-    var time by remember { mutableStateOf(viewModel.glucTime.ifEmpty { viewModel.formatEpochToTimeOnly(System.currentTimeMillis()) }) }
+    var date by remember { mutableStateOf(viewModel.glucDate.ifEmpty { viewModel.formatEpochToDateOnly(viewModel.getCurrentTimeMillis()) }) }
+    var time by remember { mutableStateOf(viewModel.glucTime.ifEmpty { viewModel.formatEpochToTimeOnly(viewModel.getCurrentTimeMillis()) }) }
     var notes by remember { mutableStateOf(viewModel.glucNotes) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -2251,14 +3317,132 @@ fun GlucoseFormDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            viewModel.glucValue = value
-                            viewModel.glucMealContext = context
-                            viewModel.glucDate = date
-                            viewModel.glucTime = time
-                            viewModel.glucNotes = notes
+                            viewModel.glucValue = value.trim()
+                            viewModel.glucMealContext = context.trim()
+                            viewModel.glucDate = date.trim()
+                            viewModel.glucTime = time.trim()
+                            viewModel.glucNotes = notes.trim()
                             onSave()
                         },
-                        enabled = value.toDoubleOrNull() != null
+                        enabled = value.trim().toDoubleOrNull() != null
+                    ) {
+                        Text("Save")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BloodPressureFormDialog(
+    viewModel: GlucoViewModel,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    var systolic by remember { mutableStateOf(viewModel.bpSystolic) }
+    var diastolic by remember { mutableStateOf(viewModel.bpDiastolic) }
+    var pulse by remember { mutableStateOf(viewModel.bpPulse.ifEmpty { "72" }) }
+    var date by remember { mutableStateOf(viewModel.bpDate.ifEmpty { viewModel.formatEpochToDateOnly(viewModel.getCurrentTimeMillis()) }) }
+    var time by remember { mutableStateOf(viewModel.bpTime.ifEmpty { viewModel.formatEpochToTimeOnly(viewModel.getCurrentTimeMillis()) }) }
+    var notes by remember { mutableStateOf(viewModel.bpNotes) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+                .testTag("blood_pressure_dialog"),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = if (viewModel.selectedBpIdToEdit != null) "Edit BP Record" else "Add BP Record",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = systolic,
+                        onValueChange = { systolic = it },
+                        label = { Text("Systolic (mmHg)") },
+                        placeholder = { Text("120") },
+                        modifier = Modifier.weight(1f).testTag("bp_systolic_input"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    OutlinedTextField(
+                        value = diastolic,
+                        onValueChange = { diastolic = it },
+                        label = { Text("Diastolic (mmHg)") },
+                        placeholder = { Text("80") },
+                        modifier = Modifier.weight(1f).testTag("bp_diastolic_input"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = pulse,
+                    onValueChange = { pulse = it },
+                    label = { Text("Pulse / Heart Rate (bpm)") },
+                    placeholder = { Text("72") },
+                    modifier = Modifier.fillMaxWidth().testTag("bp_pulse_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = date,
+                        onValueChange = { date = it },
+                        label = { Text("Date (YYYY-MM-DD)") },
+                        modifier = Modifier.weight(1.2f)
+                    )
+                    OutlinedTextField(
+                        value = time,
+                        onValueChange = { time = it },
+                        label = { Text("Time (HH:MM)") },
+                        modifier = Modifier.weight(0.8f)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (e.g., Sitting, resting)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            viewModel.bpSystolic = systolic.trim()
+                            viewModel.bpDiastolic = diastolic.trim()
+                            viewModel.bpPulse = pulse.trim()
+                            viewModel.bpDate = date.trim()
+                            viewModel.bpTime = time.trim()
+                            viewModel.bpNotes = notes.trim()
+                            onSave()
+                        },
+                        enabled = systolic.trim().toIntOrNull() != null && diastolic.trim().toIntOrNull() != null
                     ) {
                         Text("Save")
                     }
@@ -2602,8 +3786,8 @@ fun RefillFormDialog(
     onSave: () -> Unit
 ) {
     var capacity by remember { mutableStateOf(editingLog?.capacity?.toInt()?.toString() ?: "300") }
-    var date by remember { mutableStateOf(if (editingLog != null) viewModel.formatEpochToDateOnly(editingLog.dateTimeMillis) else viewModel.formatEpochToDateOnly(System.currentTimeMillis())) }
-    var time by remember { mutableStateOf(if (editingLog != null) viewModel.formatEpochToTimeOnly(editingLog.dateTimeMillis) else viewModel.formatEpochToTimeOnly(System.currentTimeMillis())) }
+    var date by remember { mutableStateOf(if (editingLog != null) viewModel.formatEpochToDateOnly(editingLog.dateTimeMillis) else viewModel.formatEpochToDateOnly(viewModel.getCurrentTimeMillis())) }
+    var time by remember { mutableStateOf(if (editingLog != null) viewModel.formatEpochToTimeOnly(editingLog.dateTimeMillis) else viewModel.formatEpochToTimeOnly(viewModel.getCurrentTimeMillis())) }
     var actionType by remember { mutableStateOf(editingLog?.actionType ?: "Refill") }
 
     Dialog(onDismissRequest = onDismiss) {

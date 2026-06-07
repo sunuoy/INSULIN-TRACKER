@@ -5,11 +5,13 @@ import com.example.data.dao.InsulinDao
 import com.example.data.dao.ProfileDao
 import com.example.data.dao.ReminderDao
 import com.example.data.dao.CartridgeRefillLogDao
+import com.example.data.dao.BloodPressureDao
 import com.example.data.model.GlucoseReading
 import com.example.data.model.InsulinRecord
 import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
+import com.example.data.model.BloodPressureRecord
 import kotlinx.coroutines.flow.Flow
 
 class AppRepository(
@@ -17,7 +19,8 @@ class AppRepository(
     private val glucoseDao: GlucoseDao,
     private val reminderDao: ReminderDao,
     private val profileDao: ProfileDao,
-    private val cartridgeRefillLogDao: CartridgeRefillLogDao
+    private val cartridgeRefillLogDao: CartridgeRefillLogDao,
+    private val bloodPressureDao: BloodPressureDao
 ) {
     // Insulin Doses
     val allInsulinRecords: Flow<List<InsulinRecord>> = insulinDao.getAllInsulinRecords()
@@ -110,5 +113,24 @@ class AppRepository(
 
     suspend fun clearAllRefillLogs() {
         cartridgeRefillLogDao.clearAllRefillLogs()
+    }
+
+    // Blood Pressure Records
+    val allBloodPressureRecords: Flow<List<BloodPressureRecord>> = bloodPressureDao.getAllBloodPressureRecords()
+
+    suspend fun insertBloodPressureRecord(record: BloodPressureRecord) {
+        bloodPressureDao.insertBloodPressureRecord(record)
+    }
+
+    suspend fun deleteBloodPressureRecord(record: BloodPressureRecord) {
+        bloodPressureDao.deleteBloodPressureRecord(record)
+    }
+
+    suspend fun deleteBloodPressureRecordById(id: Long) {
+        bloodPressureDao.deleteBloodPressureRecordById(id)
+    }
+
+    suspend fun clearAllBloodPressureRecords() {
+        bloodPressureDao.clearAllBloodPressureRecords()
     }
 }

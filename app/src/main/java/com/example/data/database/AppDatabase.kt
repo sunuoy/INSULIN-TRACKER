@@ -9,11 +9,13 @@ import com.example.data.dao.InsulinDao
 import com.example.data.dao.ProfileDao
 import com.example.data.dao.ReminderDao
 import com.example.data.dao.CartridgeRefillLogDao
+import com.example.data.dao.BloodPressureDao
 import com.example.data.model.GlucoseReading
 import com.example.data.model.InsulinRecord
 import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
+import com.example.data.model.BloodPressureRecord
 
 @Database(
     entities = [
@@ -21,9 +23,10 @@ import com.example.data.model.CartridgeRefillLog
         GlucoseReading::class,
         Reminder::class,
         UserProfile::class,
-        CartridgeRefillLog::class
+        CartridgeRefillLog::class,
+        BloodPressureRecord::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun reminderDao(): ReminderDao
     abstract fun profileDao(): ProfileDao
     abstract fun cartridgeRefillLogDao(): CartridgeRefillLogDao
+    abstract fun bloodPressureDao(): BloodPressureDao
 
     companion object {
         @Volatile

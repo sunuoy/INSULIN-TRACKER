@@ -9,6 +9,7 @@ import com.example.data.model.InsulinRecord
 import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
+import com.example.data.model.BloodPressureRecord
 import com.example.data.repository.AppRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -27,6 +28,22 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: AppRepository
 
+    // Simulated system time (Virtual Clock Offset in milliseconds)
+    private val _customTimeOffsetMillis = MutableStateFlow(0L)
+    val customTimeOffsetMillis: StateFlow<Long> = _customTimeOffsetMillis.asStateFlow()
+
+    fun getCurrentTimeMillis(): Long {
+        return System.currentTimeMillis() + _customTimeOffsetMillis.value
+    }
+
+    fun setSystemTime(epochMillis: Long) {
+        _customTimeOffsetMillis.value = epochMillis - System.currentTimeMillis()
+    }
+
+    fun resetSystemTime() {
+        _customTimeOffsetMillis.value = 0L
+    }
+
     // Screen State
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -38,6 +55,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     val userProfile: StateFlow<UserProfile>
     val allProfiles: StateFlow<List<UserProfile>>
     val refillLogs: StateFlow<List<CartridgeRefillLog>>
+    val bloodPressureRecords: StateFlow<List<BloodPressureRecord>>
 
     // Search and Filter States
     private val _insulinTypeFilter = MutableStateFlow("All")
@@ -73,6 +91,15 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     var remDays = "Daily"
     var selectedReminderIdToEdit: Long? = null
 
+    // Form Temporary State (Blood Pressure)
+    var bpSystolic = ""
+    var bpDiastolic = ""
+    var bpPulse = ""
+    var bpDate = ""
+    var bpTime = ""
+    var bpNotes = ""
+    var selectedBpIdToEdit: Long? = null
+
     // Init Database & Streams
     init {
         val database = AppDatabase.getDatabase(application)
@@ -81,7 +108,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             database.glucoseDao(),
             database.reminderDao(),
             database.profileDao(),
-            database.cartridgeRefillLogDao()
+            database.cartridgeRefillLogDao(),
+            database.bloodPressureDao()
         )
 
         // Flows from database
@@ -102,6 +130,9 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         refillLogs = repository.allRefillLogs
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        bloodPressureRecords = repository.allBloodPressureRecords
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         // Ensure database default entities
@@ -204,6 +235,23 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    val filteredBloodPressureRecords: Flow<List<BloodPressureRecord>> = combine(
+        bloodPressureRecords,
+        _searchQuery
+    ) { records, query ->
+        records.filter { record ->
+            if (query.isEmpty()) {
+                true
+            } else {
+                record.notes.contains(query, ignoreCase = true) ||
+                record.systolic.toString().contains(query) ||
+                record.diastolic.toString().contains(query) ||
+                record.pulse.toString().contains(query) ||
+                formatEpochToDate(record.dateTimeMillis).contains(query, ignoreCase = true)
+            }
+        }
+    }
+
     // Business Logic Actions (Insulin)
     fun saveInsulinRecord() {
         val parsedDose = insDose.toDoubleOrNull() ?: 0.0
@@ -260,8 +308,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         selectedInsulinIdToEdit = null
         insType = "Rapid-acting"
         insDose = ""
-        insDate = formatEpochToDateOnly(System.currentTimeMillis())
-        insTime = formatEpochToTimeOnly(System.currentTimeMillis())
+        insDate = formatEpochToDateOnly(getCurrentTimeMillis())
+        insTime = formatEpochToTimeOnly(getCurrentTimeMillis())
         insNotes = ""
     }
 
@@ -313,9 +361,68 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         selectedGlucoseIdToEdit = null
         glucValue = ""
         glucMealContext = "Fasting"
-        glucDate = formatEpochToDateOnly(System.currentTimeMillis())
-        glucTime = formatEpochToTimeOnly(System.currentTimeMillis())
+        glucDate = formatEpochToDateOnly(getCurrentTimeMillis())
+        glucTime = formatEpochToTimeOnly(getCurrentTimeMillis())
         glucNotes = ""
+    }
+
+    // Business Logic Actions (Blood Pressure)
+    fun saveBloodPressureRecord() {
+        val systolicVal = bpSystolic.trim().toIntOrNull() ?: 120
+        val diastolicVal = bpDiastolic.trim().toIntOrNull() ?: 80
+        val pulseVal = bpPulse.trim().toIntOrNull() ?: 70
+        val calendar = composeCalendarFromDateStrAndTimeStr(bpDate.trim(), bpTime.trim())
+        val timeInMillis = calendar.timeInMillis
+
+        val record = if (selectedBpIdToEdit != null) {
+            BloodPressureRecord(
+                id = selectedBpIdToEdit!!,
+                systolic = systolicVal,
+                diastolic = diastolicVal,
+                pulse = pulseVal,
+                dateTimeMillis = timeInMillis,
+                notes = bpNotes
+            )
+        } else {
+            BloodPressureRecord(
+                systolic = systolicVal,
+                diastolic = diastolicVal,
+                pulse = pulseVal,
+                dateTimeMillis = timeInMillis,
+                notes = bpNotes
+            )
+        }
+
+        viewModelScope.launch {
+            repository.insertBloodPressureRecord(record)
+            resetBloodPressureForm()
+        }
+    }
+
+    fun deleteBloodPressureRecord(record: BloodPressureRecord) {
+        viewModelScope.launch {
+            repository.deleteBloodPressureRecord(record)
+        }
+    }
+
+    fun prepareEditBloodPressure(record: BloodPressureRecord) {
+        selectedBpIdToEdit = record.id
+        bpSystolic = record.systolic.toString()
+        bpDiastolic = record.diastolic.toString()
+        bpPulse = record.pulse.toString()
+        bpDate = formatEpochToDateOnly(record.dateTimeMillis)
+        bpTime = formatEpochToTimeOnly(record.dateTimeMillis)
+        bpNotes = record.notes
+    }
+
+    fun resetBloodPressureForm() {
+        selectedBpIdToEdit = null
+        bpSystolic = ""
+        bpDiastolic = ""
+        bpPulse = ""
+        bpDate = formatEpochToDateOnly(getCurrentTimeMillis())
+        bpTime = formatEpochToTimeOnly(getCurrentTimeMillis())
+        bpNotes = ""
     }
 
     // Business Logic Actions (Reminders)
@@ -628,6 +735,394 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         return sb.toString()
+    }
+
+    // Export Reports Filters
+    private val _pdfIncludeGlucose = MutableStateFlow(true)
+    val pdfIncludeGlucose: StateFlow<Boolean> = _pdfIncludeGlucose.asStateFlow()
+
+    private val _pdfIncludeInsulin = MutableStateFlow(true)
+    val pdfIncludeInsulin: StateFlow<Boolean> = _pdfIncludeInsulin.asStateFlow()
+
+    private val _pdfIncludeBp = MutableStateFlow(true)
+    val pdfIncludeBp: StateFlow<Boolean> = _pdfIncludeBp.asStateFlow()
+
+    private val _pdfIncludeRefills = MutableStateFlow(true)
+    val pdfIncludeRefills: StateFlow<Boolean> = _pdfIncludeRefills.asStateFlow()
+
+    private val _pdfDateRange = MutableStateFlow("Last 30 Days") // "Last 7 Days", "Last 14 Days", "Last 30 Days", "All", "Custom Range"
+    val pdfDateRange: StateFlow<String> = _pdfDateRange.asStateFlow()
+
+    private val _pdfCustomFromDate = MutableStateFlow(formatEpochToDateOnly(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000))
+    val pdfCustomFromDate: StateFlow<String> = _pdfCustomFromDate.asStateFlow()
+
+    private val _pdfCustomToDate = MutableStateFlow(formatEpochToDateOnly(System.currentTimeMillis()))
+    val pdfCustomToDate: StateFlow<String> = _pdfCustomToDate.asStateFlow()
+
+    fun setPdfIncludeGlucose(value: Boolean) { _pdfIncludeGlucose.value = value }
+    fun setPdfIncludeInsulin(value: Boolean) { _pdfIncludeInsulin.value = value }
+    fun setPdfIncludeBp(value: Boolean) { _pdfIncludeBp.value = value }
+    fun setPdfIncludeRefills(value: Boolean) { _pdfIncludeRefills.value = value }
+    fun setPdfDateRange(value: String) { _pdfDateRange.value = value }
+    fun setPdfCustomFromDate(value: String) { _pdfCustomFromDate.value = value.trim() }
+    fun setPdfCustomToDate(value: String) { _pdfCustomToDate.value = value.trim() }
+
+    fun getStartOfDayMillis(dateStr: String): Long {
+        return try {
+            val calendar = composeCalendarFromDateStrAndTimeStr(dateStr, "00:00")
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            calendar.timeInMillis
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
+    fun getEndOfDayMillis(dateStr: String): Long {
+        return try {
+            val calendar = composeCalendarFromDateStrAndTimeStr(dateStr, "23:59")
+            calendar.set(Calendar.SECOND, 59)
+            calendar.set(Calendar.MILLISECOND, 999)
+            calendar.timeInMillis
+        } catch (e: Exception) {
+            Long.MAX_VALUE
+        }
+    }
+
+    fun generatePdfReport(
+        records: List<InsulinRecord>,
+        readings: List<GlucoseReading>,
+        bpRecords: List<BloodPressureRecord>,
+        refills: List<CartridgeRefillLog>,
+        profile: UserProfile
+    ): java.io.File {
+        val pdfDocument = android.graphics.pdf.PdfDocument()
+        val paint = android.graphics.Paint()
+
+        // Page count tracker
+        var pageNumber = 1
+        var pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+        var page = pdfDocument.startPage(pageInfo)
+        var canvas = page.canvas
+
+        var yCoord = 50f
+
+        fun checkPageNew(requiredSpace: Float) {
+            if (yCoord + requiredSpace > 800f) {
+                pdfDocument.finishPage(page)
+                pageNumber++
+                pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                page = pdfDocument.startPage(pageInfo)
+                canvas = page.canvas
+
+                // Draw standard header bar
+                yCoord = 40f
+                paint.color = android.graphics.Color.parseColor("#90A4AE")
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
+                paint.textSize = 8f
+                canvas.drawText("GlucoLog Clinical Report | Page $pageNumber", 50f, yCoord, paint)
+                canvas.drawLine(50f, yCoord + 4f, 545f, yCoord + 4f, paint)
+                yCoord += 20f
+            }
+        }
+
+        // Filter based on Date range selection
+        val currentTime = getCurrentTimeMillis()
+        val limitMillis = when (_pdfDateRange.value) {
+            "Last 7 Days" -> currentTime - 7L * 24 * 60 * 60 * 1000
+            "Last 14 Days" -> currentTime - 14L * 24 * 60 * 60 * 1000
+            "Last 30 Days" -> currentTime - 30L * 24 * 60 * 60 * 1000
+            else -> 0L // All Time
+        }
+
+        val filteredGlucose = if (_pdfIncludeGlucose.value) {
+            if (_pdfDateRange.value == "Custom Range") {
+                val from = getStartOfDayMillis(_pdfCustomFromDate.value)
+                val to = getEndOfDayMillis(_pdfCustomToDate.value)
+                readings.filter { it.dateTimeMillis in from..to }.sortedBy { it.dateTimeMillis }
+            } else {
+                readings.filter { it.dateTimeMillis >= limitMillis }.sortedBy { it.dateTimeMillis }
+            }
+        } else emptyList()
+
+        val filteredInsulin = if (_pdfIncludeInsulin.value) {
+            if (_pdfDateRange.value == "Custom Range") {
+                val from = getStartOfDayMillis(_pdfCustomFromDate.value)
+                val to = getEndOfDayMillis(_pdfCustomToDate.value)
+                records.filter { it.dateTimeMillis in from..to }.sortedBy { it.dateTimeMillis }
+            } else {
+                records.filter { it.dateTimeMillis >= limitMillis }.sortedBy { it.dateTimeMillis }
+            }
+        } else emptyList()
+
+        val filteredBp = if (_pdfIncludeBp.value) {
+            if (_pdfDateRange.value == "Custom Range") {
+                val from = getStartOfDayMillis(_pdfCustomFromDate.value)
+                val to = getEndOfDayMillis(_pdfCustomToDate.value)
+                bpRecords.filter { it.dateTimeMillis in from..to }.sortedBy { it.dateTimeMillis }
+            } else {
+                bpRecords.filter { it.dateTimeMillis >= limitMillis }.sortedBy { it.dateTimeMillis }
+            }
+        } else emptyList()
+
+        val filteredRefills = if (_pdfIncludeRefills.value) {
+            if (_pdfDateRange.value == "Custom Range") {
+                val from = getStartOfDayMillis(_pdfCustomFromDate.value)
+                val to = getEndOfDayMillis(_pdfCustomToDate.value)
+                refills.filter { it.dateTimeMillis in from..to }.sortedBy { it.dateTimeMillis }
+            } else {
+                refills.filter { it.dateTimeMillis >= limitMillis }.sortedBy { it.dateTimeMillis }
+            }
+        } else emptyList()
+
+        // Draw Document Header
+        paint.isAntiAlias = true
+        paint.color = android.graphics.Color.parseColor("#1A237E") // Medical theme Navy primary
+        paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        paint.textSize = 18f
+        canvas.drawText("GLUCOLOG CLINICAL REPORT", 50f, yCoord, paint)
+
+        yCoord += 18f
+        paint.color = android.graphics.Color.parseColor("#00838F") // Accent Teal
+        paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        paint.textSize = 10f
+        canvas.drawText("Comprehensive Patient Health Profile & Clinical Logs", 50f, yCoord, paint)
+
+        yCoord += 8f
+        paint.color = android.graphics.Color.parseColor("#90A4AE")
+        paint.strokeWidth = 1f
+        canvas.drawLine(50f, yCoord, 545f, yCoord, paint)
+
+        // Patient Information Box
+        yCoord += 24f
+        paint.color = android.graphics.Color.parseColor("#ECEFF1")
+        canvas.drawRect(50f, yCoord - 14f, 545f, yCoord + 64f, paint)
+
+        paint.color = android.graphics.Color.parseColor("#263238")
+        paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        paint.textSize = 10f
+        canvas.drawText("Patient: ${profile.userName}", 60f, yCoord, paint)
+        paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
+        paint.textSize = 9f
+        canvas.drawText("Primary Doctor: ${profile.doctorName}", 60f, yCoord + 15f, paint)
+        canvas.drawText("Contact Doctor: ${profile.doctorEmail} | ${profile.doctorPhone}", 60f, yCoord + 30f, paint)
+        canvas.drawText("Target Range: ${profile.targetGlucoseMin.toInt()} - ${profile.targetGlucoseMax.toInt()} ${profile.glucoseUnit}", 60f, yCoord + 45f, paint)
+
+        // Export Metadata
+        val format = java.text.SimpleDateFormat("MMM d, yyyy HH:mm", java.util.Locale.getDefault())
+        val generatedOn = format.format(java.util.Date(getCurrentTimeMillis()))
+        canvas.drawText("Generated On: $generatedOn", 330f, yCoord, paint)
+        val ScopeText = if (_pdfDateRange.value == "Custom Range") {
+            "Custom: ${_pdfCustomFromDate.value} to ${_pdfCustomToDate.value}"
+        } else {
+            _pdfDateRange.value
+        }
+        canvas.drawText("Filter Scope: $ScopeText", 330f, yCoord + 15f, paint)
+
+        yCoord += 80f
+
+        fun drawSectionHeader(title: String) {
+            checkPageNew(40f)
+            paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            paint.textSize = 12f
+            paint.color = android.graphics.Color.parseColor("#1A237E")
+            canvas.drawText(title, 50f, yCoord, paint)
+            yCoord += 4f
+            paint.strokeWidth = 1f
+            paint.color = android.graphics.Color.parseColor("#B0BEC5")
+            canvas.drawLine(50f, yCoord, 545f, yCoord, paint)
+            yCoord += 16f
+        }
+
+        fun drawTableHeader(columns: List<String>, columnWidths: List<Float>) {
+            checkPageNew(20f)
+            paint.color = android.graphics.Color.parseColor("#EEEEEE")
+            canvas.drawRect(50f, yCoord - 12f, 545f, yCoord + 4f, paint)
+
+            paint.color = android.graphics.Color.parseColor("#37474F")
+            paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            paint.textSize = 8.5f
+
+            var currentX = 55f
+            columns.forEachIndexed { idx, col ->
+                canvas.drawText(col, currentX, yCoord, paint)
+                currentX += columnWidths[idx]
+            }
+            yCoord += 14f
+        }
+
+        fun drawTableRow(columns: List<String>, columnWidths: List<Float>, isEven: Boolean) {
+            checkPageNew(18f)
+            if (isEven) {
+                paint.color = android.graphics.Color.parseColor("#F9FBFD")
+                canvas.drawRect(50f, yCoord - 10f, 545f, yCoord + 4f, paint)
+            }
+
+            paint.color = android.graphics.Color.parseColor("#263238")
+            paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
+            paint.textSize = 8f
+
+            var currentX = 55f
+            columns.forEachIndexed { idx, col ->
+                val limitWidth = columnWidths[idx] - 8f
+                val text = if (paint.measureText(col) > limitWidth) {
+                    var temp = col
+                    while (temp.isNotEmpty() && paint.measureText("$temp...") > limitWidth) {
+                        temp = temp.dropLast(1)
+                    }
+                    if (temp.isEmpty()) "" else "$temp..."
+                } else col
+                canvas.drawText(text, currentX, yCoord, paint)
+                currentX += columnWidths[idx]
+            }
+            yCoord += 12f
+        }
+
+        // 1. Blood Glucose readings
+        if (_pdfIncludeGlucose.value) {
+            drawSectionHeader("Blood Glucose Level Logs")
+            if (filteredGlucose.isEmpty()) {
+                paint.color = android.graphics.Color.parseColor("#78909C")
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.ITALIC)
+                paint.textSize = 9f
+                canvas.drawText("No glucose readings found in selected date range.", 60f, yCoord, paint)
+                yCoord += 20f
+            } else {
+                val cols = listOf("Date / Time", "Reading", "Status", "Meal Context", "Notes")
+                val widths = listOf(110f, 60f, 75f, 90f, 160f)
+                drawTableHeader(cols, widths)
+
+                filteredGlucose.forEachIndexed { i, reading ->
+                    val status = when {
+                        reading.readingValue < profile.targetGlucoseMin -> "LOW"
+                        reading.readingValue > profile.targetGlucoseMax -> "HIGH"
+                        else -> "NORMAL"
+                    }
+                    val rowText = listOf(
+                        formatEpochToDate(reading.dateTimeMillis),
+                        "${reading.readingValue} ${profile.glucoseUnit}",
+                        status,
+                        reading.mealContext,
+                        reading.notes
+                    )
+                    drawTableRow(rowText, widths, i % 2 == 0)
+                }
+                yCoord += 15f
+            }
+        }
+
+        // 2. Insulin dosages
+        if (_pdfIncludeInsulin.value) {
+            drawSectionHeader("Insulin Dosage Logs")
+            if (filteredInsulin.isEmpty()) {
+                paint.color = android.graphics.Color.parseColor("#78909C")
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.ITALIC)
+                paint.textSize = 9f
+                canvas.drawText("No insulin logs found in selected date range.", 60f, yCoord, paint)
+                yCoord += 20f
+            } else {
+                val cols = listOf("Date / Time", "Insulin Type", "Dose units", "Notes")
+                val widths = listOf(115f, 110f, 80f, 190f)
+                drawTableHeader(cols, widths)
+
+                filteredInsulin.forEachIndexed { i, record ->
+                    val rowText = listOf(
+                        formatEpochToDate(record.dateTimeMillis),
+                        record.insulinType,
+                        "${record.doseUnits} Units",
+                        record.notes
+                    )
+                    drawTableRow(rowText, widths, i % 2 == 0)
+                }
+                yCoord += 15f
+            }
+        }
+
+        // 3. Blood Pressure
+        if (_pdfIncludeBp.value) {
+            drawSectionHeader("Blood Pressure Logs")
+            if (filteredBp.isEmpty()) {
+                paint.color = android.graphics.Color.parseColor("#78909C")
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.ITALIC)
+                paint.textSize = 9f
+                canvas.drawText("No blood pressure logs found in selected date range.", 60f, yCoord, paint)
+                yCoord += 20f
+            } else {
+                val cols = listOf("Date / Time", "Sys/Dia (mmHg)", "Pulse", "Status", "Notes")
+                val widths = listOf(110f, 95f, 65f, 85f, 140f)
+                drawTableHeader(cols, widths)
+
+                filteredBp.forEachIndexed { i, record ->
+                    val sys = record.systolic
+                    val dia = record.diastolic
+                    val statusLabel = when {
+                        sys >= 140 || dia >= 90 -> "Stage 2 High"
+                        sys in 130..139 || dia in 80..89 -> "Stage 1 High"
+                        sys in 120..129 && dia < 80 -> "Elevated"
+                        sys < 90 || dia < 60 -> "Low"
+                        else -> "Normal"
+                    }
+                    val rowText = listOf(
+                        formatEpochToDate(record.dateTimeMillis),
+                        "$sys/$dia mmHg",
+                        "${record.pulse} bpm",
+                        statusLabel,
+                        record.notes
+                    )
+                    drawTableRow(rowText, widths, i % 2 == 0)
+                }
+                yCoord += 15f
+            }
+        }
+
+        // 4. Cartridge Refills
+        if (_pdfIncludeRefills.value) {
+            drawSectionHeader("Cartridge Refill & Change History")
+            if (filteredRefills.isEmpty()) {
+                paint.color = android.graphics.Color.parseColor("#78909C")
+                paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.ITALIC)
+                paint.textSize = 9f
+                canvas.drawText("No refill logs found in selected date range.", 60f, yCoord, paint)
+                yCoord += 20f
+            } else {
+                val cols = listOf("Date / Time", "Action Type", "Capacity (U)", "Remaining Before")
+                val widths = listOf(130f, 120f, 110f, 135f)
+                drawTableHeader(cols, widths)
+
+                filteredRefills.forEachIndexed { i, refill ->
+                    val rowText = listOf(
+                        formatEpochToDate(refill.dateTimeMillis),
+                        refill.actionType,
+                        "${refill.capacity.toInt()} Units",
+                        String.format(java.util.Locale.getDefault(), "%.1f Units", refill.remainingBefore)
+                    )
+                    drawTableRow(rowText, widths, i % 2 == 0)
+                }
+                yCoord += 15f
+            }
+        }
+
+        // Drawing End of Report Footer Marker on current last page
+        checkPageNew(40f)
+        paint.color = android.graphics.Color.parseColor("#B0BEC5")
+        canvas.drawLine(50f, yCoord, 545f, yCoord, paint)
+        yCoord += 15f
+        paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD_ITALIC)
+        paint.textSize = 8f
+        paint.color = android.graphics.Color.parseColor("#90A4AE")
+        canvas.drawText("--- Ende des Befunds / End of Clinical Health Report ---", 160f, yCoord, paint)
+
+        pdfDocument.finishPage(page)
+
+        val file = java.io.File(getApplication<Application>().cacheDir, "GlucoLog_Clinical_Report.pdf")
+        if (file.exists()) file.delete()
+
+        val out = java.io.FileOutputStream(file)
+        pdfDocument.writeTo(out)
+        out.close()
+        pdfDocument.close()
+
+        return file
     }
 }
 

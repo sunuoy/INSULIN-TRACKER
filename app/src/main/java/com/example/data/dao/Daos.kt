@@ -6,6 +6,7 @@ import com.example.data.model.GlucoseReading
 import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
+import com.example.data.model.BloodPressureRecord
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -99,5 +100,23 @@ interface CartridgeRefillLogDao {
 
     @Query("DELETE FROM cartridge_refill_logs")
     suspend fun clearAllRefillLogs()
+}
+
+@Dao
+interface BloodPressureDao {
+    @Query("SELECT * FROM blood_pressure_records ORDER BY dateTimeMillis DESC")
+    fun getAllBloodPressureRecords(): Flow<List<BloodPressureRecord>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBloodPressureRecord(record: BloodPressureRecord)
+
+    @Delete
+    suspend fun deleteBloodPressureRecord(record: BloodPressureRecord)
+
+    @Query("DELETE FROM blood_pressure_records WHERE id = :id")
+    suspend fun deleteBloodPressureRecordById(id: Long)
+
+    @Query("DELETE FROM blood_pressure_records")
+    suspend fun clearAllBloodPressureRecords()
 }
 

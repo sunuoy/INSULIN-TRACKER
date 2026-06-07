@@ -56,3 +56,13 @@ data class CartridgeRefillLog(
     val actionType: String // e.g. "Refill" or "New Cartridge"
 )
 
+@Entity(tableName = "blood_pressure_records")
+data class BloodPressureRecord(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val systolic: Int,
+    val diastolic: Int,
+    val pulse: Int,
+    val dateTimeMillis: Long,
+    val notes: String = ""
+)
+
