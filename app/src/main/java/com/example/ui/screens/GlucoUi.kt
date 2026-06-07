@@ -252,8 +252,18 @@ fun LoginScreen(viewModel: GlucoViewModel) {
     val context = LocalContext.current
 
     if (showForgotPasswordDialog) {
+        var resetUsername by remember { mutableStateOf("") }
+        var resetEmail by remember { mutableStateOf("") }
+        var resetNewPassword by remember { mutableStateOf("") }
+        var resetConfirmPassword by remember { mutableStateOf("") }
+        var resetNewPasswordVisible by remember { mutableStateOf(false) }
+        var resetConfirmPasswordVisible by remember { mutableStateOf(false) }
+
         AlertDialog(
-            onDismissRequest = { showForgotPasswordDialog = false },
+            onDismissRequest = { 
+                showForgotPasswordDialog = false 
+                viewModel.clearLoginError()
+            },
             title = {
                 Text(
                     text = "Request Password Reset",
@@ -262,25 +272,143 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(
-                        text = "For medical database integrity and HIPAA conformity, password recoveries require system authentication.",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Verify your registered identity parameters to authorize credential modification:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = "• Patient accounts: Please contact your clinical supervisor or diabetes care team to set up a new credential key.\n" +
-                               "• Admin accounts: Please verify environment key assets or secure database settings directly.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+
+                    OutlinedTextField(
+                        value = resetUsername,
+                        onValueChange = { 
+                            resetUsername = it 
+                            viewModel.clearLoginError()
+                        },
+                        label = { Text("Username") },
+                        placeholder = { Text("Enter your username") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reset_username_input"),
+                        shape = RoundedCornerShape(10.dp)
                     )
+
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { 
+                            resetEmail = it 
+                            viewModel.clearLoginError()
+                        },
+                        label = { Text("Email ID") },
+                        placeholder = { Text("yourname@gmail.com") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reset_email_input"),
+                        shape = RoundedCornerShape(10.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                    )
+
+                    OutlinedTextField(
+                        value = resetNewPassword,
+                        onValueChange = { 
+                            resetNewPassword = it 
+                            viewModel.clearLoginError()
+                        },
+                        label = { Text("New Password") },
+                        placeholder = { Text("Enter new password") },
+                        singleLine = true,
+                        visualTransformation = if (resetNewPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { resetNewPasswordVisible = !resetNewPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (resetNewPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Toggle password visibility"
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reset_password_input"),
+                        shape = RoundedCornerShape(10.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+
+                    OutlinedTextField(
+                        value = resetConfirmPassword,
+                        onValueChange = { 
+                            resetConfirmPassword = it 
+                            viewModel.clearLoginError()
+                        },
+                        label = { Text("Confirm New Password") },
+                        placeholder = { Text("Repeat new password") },
+                        singleLine = true,
+                        visualTransformation = if (resetConfirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { resetConfirmPasswordVisible = !resetConfirmPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (resetConfirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Toggle password visibility"
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("reset_confirm_password_input"),
+                        shape = RoundedCornerShape(10.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+
+                    if (loginError != null) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = loginError ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .testTag("reset_error_message")
+                            )
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showForgotPasswordDialog = false 
+                    viewModel.clearLoginError()
+                }) {
+                    Text("Cancel")
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showForgotPasswordDialog = false }) {
-                    Text("Close")
+                Button(
+                    onClick = {
+                        if (resetNewPassword != resetConfirmPassword) {
+                            viewModel.setLoginError("New passwords do not match!")
+                        } else {
+                            val success = viewModel.resetPassword(resetUsername, resetEmail, resetNewPassword)
+                            if (success) {
+                                android.widget.Toast.makeText(context, "Password reset successfully! You can now log in.", android.widget.Toast.LENGTH_LONG).show()
+                                showForgotPasswordDialog = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.testTag("submit_reset_button")
+                ) {
+                    Text("Verify & Reset")
                 }
             },
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(20.dp)
         )
     }
 

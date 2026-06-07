@@ -226,6 +226,40 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
+    fun resetPassword(username: String, email: String, newPass: String): Boolean {
+        _loginError.value = null
+        val trimmedUser = username.trim()
+        val trimmedEmail = email.trim().lowercase()
+
+        if (trimmedUser.isEmpty()) {
+            _loginError.value = "Username cannot be empty"
+            return false
+        }
+        if (trimmedEmail.isEmpty()) {
+            _loginError.value = "Email ID cannot be empty"
+            return false
+        }
+        if (newPass.isEmpty()) {
+            _loginError.value = "New password cannot be empty"
+            return false
+        }
+
+        if (trimmedUser.lowercase() == "admin") {
+            _loginError.value = "Admin credentials cannot be recovered online."
+            return false
+        }
+
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        val savedEmail = prefs.getString("user_email_$trimmedUser", null)
+        if (savedEmail == null || savedEmail != trimmedEmail) {
+            _loginError.value = "Verification failed. The username or email ID do not match our records."
+            return false
+        }
+
+        prefs.edit().putString("user_pass_$trimmedUser", newPass).apply()
+        return true
+    }
+
     fun logout() {
         _isLoggedIn.value = false
         _isAdmin.value = false
