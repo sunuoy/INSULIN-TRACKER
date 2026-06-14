@@ -1,26 +1,36 @@
 {
   "project_info": {
-    "project_number": "119864443408",
-    "project_id": "glucolog-firebase",
-    "storage_bucket": "glucolog-firebase.appspot.com"
+    "project_number": "803116876150",
+    "project_id": "glucolog-e8835",
+    "storage_bucket": "glucolog-e8835.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:119864443408:android:d3b3a3c3e3f3b3a3",
+        "mobilesdk_app_id": "1:803116876150:android:42fa29fac71c1c64647a57",
         "android_client_info": {
           "package_name": "com.aistudio.glucolog.qwdrtp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "803116876150-ipkfispcb8iqmprug3s1ie7rvapsmen6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "dummy_api_key_for_compilation"
+          "current_key": "AIzaSyCAkm01JSnkYijqXABVpg_YoQePWGt6do0"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "803116876150-ipkfispcb8iqmprug3s1ie7rvapsmen6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
@@ -697,7 +699,17 @@ fun LoginScreen(viewModel: GlucoViewModel) {
 
                 // Sign in with Google Button
                 OutlinedButton(
-                    onClick = { showGoogleSignInDialog = true },
+                    onClick = {
+                        try {
+                            android.widget.Toast.makeText(context, "Redirecting to Google login webpage...", android.widget.Toast.LENGTH_LONG).show()
+                            val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://accounts.google.com"))
+                            browserIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(browserIntent)
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Redirecting to Google login...", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        showGoogleSignInDialog = true
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
@@ -753,36 +765,6 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
-
-                // Guide credentials card (without admin details)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "Portal Guidelines:",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Divider(
-                            modifier = Modifier.fillMaxWidth(),
-                            thickness = 0.5.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            text = "• Patient Access: Create an account or log in under your credentials as a standard patient.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
         }
     }
@@ -920,172 +902,81 @@ fun GoogleSignInDialog(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Choose a detected account or configure custom email profile parameters.",
+                        text = "Input your Google profile details to securely connect this clinical session.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                         textAlign = TextAlign.Center
                     )
 
-                    var isCustomAccountMode by remember { mutableStateOf(false) }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = fullName,
+                            onValueChange = { fullName = it },
+                            label = { Text("Full Name") },
+                            placeholder = { Text("e.g. David Miller") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("google_input_full_name"),
+                            shape = RoundedCornerShape(10.dp)
+                        )
 
-                    if (!isCustomAccountMode) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
+                        OutlinedTextField(
+                            value = emailId,
+                            onValueChange = { emailId = it },
+                            label = { Text("Email ID") },
+                            placeholder = { Text("e.g. david.clinical@gmail.com") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("google_input_email"),
+                            shape = RoundedCornerShape(10.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                        )
+
+                        OutlinedTextField(
+                            value = userName,
+                            onValueChange = { userName = it },
+                            label = { Text("Username") },
+                            placeholder = { Text("e.g. davidm") },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("google_input_username"),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Card(
+                            TextButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Cancel")
+                            }
+                            Button(
                                 onClick = {
-                                    fullName = "Younus M33"
-                                    emailId = "younusM33@gmail.com"
-                                    userName = "youns"
-                                    step = 2
+                                    val trimmedEmail = emailId.trim().lowercase()
+                                    if (fullName.trim().isEmpty() || trimmedEmail.isEmpty() || userName.trim().isEmpty()) {
+                                        android.widget.Toast.makeText(context, "Please fill out all fields", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else if (!trimmedEmail.endsWith("@gmail.com")) {
+                                        android.widget.Toast.makeText(context, "Only @gmail.com addresses are supported for Google auth", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        emailId = trimmedEmail
+                                        onSignInSuccess(fullName, emailId, userName)
+                                        step = 3
+                                    }
                                 },
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("google_account_younus"),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                    .weight(1.5f)
+                                    .testTag("google_custom_next_btn")
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .background(MaterialTheme.colorScheme.primary, CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("Y", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
-                                    }
-                                    Column {
-                                        Text("Younus M33", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                        Text("younusM33@gmail.com", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                                    }
-                                }
-                            }
-
-                            Card(
-                                onClick = {
-                                    fullName = "Primary Patient"
-                                    emailId = "patient@gmail.com"
-                                    userName = "patient"
-                                    step = 2
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("google_account_patient"),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .background(MaterialTheme.colorScheme.secondary, CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("P", color = MaterialTheme.colorScheme.onSecondary, fontWeight = FontWeight.Bold)
-                                    }
-                                    Column {
-                                        Text("Primary Patient", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                        Text("patient@gmail.com", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                                    }
-                                }
-                            }
-
-                            OutlinedButton(
-                                onClick = { isCustomAccountMode = true },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp)
-                                    .testTag("use_different_gmail_button"),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Add account")
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Use another Gmail account")
-                            }
-                        }
-                    } else {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            OutlinedTextField(
-                                value = fullName,
-                                onValueChange = { fullName = it },
-                                label = { Text("Full Name") },
-                                placeholder = { Text("e.g. David Miller") },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("google_input_full_name"),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-
-                            OutlinedTextField(
-                                value = emailId,
-                                onValueChange = { emailId = it },
-                                label = { Text("Email ID") },
-                                placeholder = { Text("e.g. david.clinical@gmail.com") },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("google_input_email"),
-                                shape = RoundedCornerShape(10.dp),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                            )
-
-                            OutlinedTextField(
-                                value = userName,
-                                onValueChange = { userName = it },
-                                label = { Text("Username") },
-                                placeholder = { Text("e.g. davidm") },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("google_input_username"),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                TextButton(
-                                    onClick = { isCustomAccountMode = false },
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text("Back")
-                                }
-                                Button(
-                                    onClick = {
-                                        val trimmedEmail = emailId.trim().lowercase()
-                                        if (fullName.trim().isEmpty() || trimmedEmail.isEmpty() || userName.trim().isEmpty()) {
-                                            android.widget.Toast.makeText(context, "Please fill out all fields", android.widget.Toast.LENGTH_SHORT).show()
-                                        } else if (!trimmedEmail.endsWith("@gmail.com")) {
-                                            android.widget.Toast.makeText(context, "Only @gmail.com addresses are supported for Google auth", android.widget.Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            emailId = trimmedEmail
-                                            step = 2
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .weight(1.5f)
-                                        .testTag("google_custom_next_btn")
-                                ) {
-                                    Text("Next")
-                                }
+                                Text("Next")
                             }
                         }
                     }
@@ -5314,6 +5205,46 @@ fun SettingsScreen(
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
+    // Document activity launchers for file-based saving and loading
+    val fileExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(exportJsonText.toByteArray(Charsets.UTF_8))
+                }
+                android.widget.Toast.makeText(context, "Backup successfully saved to file!", android.widget.Toast.LENGTH_LONG).show()
+                showExportDialog = false
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Export error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    val fileImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val content = inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    viewModel.importAppDataFromJSON(content) { success ->
+                        if (success) {
+                            android.widget.Toast.makeText(context, "App backup restored successfully!", android.widget.Toast.LENGTH_LONG).show()
+                            showImportDialog = false
+                        } else {
+                            importErrorMsg = "Failed to parse backup JSON. Invalid file format."
+                            showImportDialog = true
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Read error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     // A list of 6 distinct beautiful styled avatars with modern color gradients and vector icons
     val avatarOptions = listOf(
         Icons.Default.MedicalServices to Color(0xFF1E88E5), // Blue
@@ -5727,6 +5658,122 @@ fun SettingsScreen(
                 }
             }
 
+            // Theme Customization Card
+            var showThemeDropdown by remember { mutableStateOf(false) }
+            val selectedThemeCode by viewModel.selectedTheme.collectAsStateWithLifecycle()
+            val themeOptions = listOf(
+                Triple("arctic", "Arctic Light", "Light / Clean SaaS theme"),
+                Triple("ocean_depth", "Ocean Depth", "Dark / High-Contrast Marine theme"),
+                Triple("aurora", "Aurora Indigo", "Dark / Purple Neon style"),
+                Triple("midnight_carbon", "Midnight Carbon", "Dark / Minimalist Slate theme"),
+                Triple("sakura", "Sakura Blossom", "Light / Romantic Pastel Pink"),
+                Triple("lemon_zest", "Lemon Zest", "Light / Warm Sunny Yellow"),
+                Triple("forest_calm", "Forest Calm", "Dark / Organic Deep Green"),
+                Triple("desert_sand", "Desert Sand", "Light / Terracotta Sand Style"),
+                Triple("neon_noir", "Neon Noir", "Dark / Vibrant Cyberpunk accents"),
+                Triple("slate_pro", "Slate Pro", "Light / Professional Cool Gray"),
+                Triple("royal_ink", "Royal Ink", "Dark / Premium Indigo Sapphire"),
+                Triple("coral_bloom", "Coral Bloom", "Light / Fresh Energetic Coral")
+            )
+            val activeThemePair = themeOptions.find { it.first == selectedThemeCode } ?: themeOptions[0]
+
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("theme_customization_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "App Color Theme",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Choose from 12 eye-safe mastercraft themes tailored for clinical environments, day logging, and night tracking.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = activeThemePair.second,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Active Interface Theme") },
+                            modifier = Modifier.fillMaxWidth().testTag("theme_selector_dropdown_input"),
+                            shape = RoundedCornerShape(12.dp),
+                            supportingText = { Text(activeThemePair.third) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Palette,
+                                    contentDescription = "Palette logo Theme",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { showThemeDropdown = !showThemeDropdown }) {
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Toggle Theme Dropdown")
+                                }
+                            }
+                        )
+                        DropdownMenu(
+                            expanded = showThemeDropdown,
+                            onDismissRequest = { showThemeDropdown = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            themeOptions.forEach { theme ->
+                                DropdownMenuItem(
+                                    leadingIcon = {
+                                        val indicatorColor = when (theme.first) {
+                                            "ocean_depth" -> Color(0xFF3B9EFF)
+                                            "aurora" -> Color(0xFFA78BFA)
+                                            "midnight_carbon" -> Color(0xFFE8E8E8)
+                                            "sakura" -> Color(0xFFE91E8C)
+                                            "arctic" -> Color(0xFF0066CC)
+                                            "lemon_zest" -> Color(0xFFD4A017)
+                                            "forest_calm" -> Color(0xFF5CB85C)
+                                            "desert_sand" -> Color(0xFFC2853A)
+                                            "neon_noir" -> Color(0xFFFF2D78)
+                                            "slate_pro" -> Color(0xFF3D5A80)
+                                            "royal_ink" -> Color(0xFF6C63FF)
+                                            "coral_bloom" -> Color(0xFFFF5733)
+                                            else -> MaterialTheme.colorScheme.primary
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .background(indicatorColor, RoundedCornerShape(4.dp))
+                                        )
+                                    },
+                                    text = {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(theme.second, fontWeight = if (theme.first == selectedThemeCode) FontWeight.Bold else FontWeight.Normal)
+                                            Text(
+                                                text = if (theme.third.contains("Dark")) "Dark" else "Light",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.selectTheme(theme.first)
+                                        showThemeDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // App Data Management (Backup, Restore & Reset)
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -5830,37 +5877,26 @@ fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Copy the backup code below and save it somewhere secure. You can use this code to fully restore your logs and profiles on any device.",
+                        text = "Save your backup file directly to your storage. You can transfer this file to fully restore your logs and profiles on any device.",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    OutlinedTextField(
-                        value = exportJsonText,
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            fontSize = 11.sp
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    )
                     Button(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         onClick = {
-                            clipboardManager.setText(androidx.compose.ui.text.buildAnnotatedString { append(exportJsonText) })
-                            android.widget.Toast.makeText(context, "Backup code copied to clipboard!", android.widget.Toast.LENGTH_SHORT).show()
+                            fileExportLauncher.launch("glucolog_backup_${System.currentTimeMillis()}.json")
                         },
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Copy to Clipboard")
+                        Icon(imageVector = Icons.Default.ArrowDownward, contentDescription = "Download outline")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save as JSON File")
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showExportDialog = false }) {
-                    Text("Done")
+                    Text("Close")
                 }
             }
         )
@@ -5878,25 +5914,21 @@ fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Paste your previously exported backup JSON block here. Warning: Importing an archive will overwrite your active data!",
+                        text = "Restore from an exported backup file (*.json). Warning: This will overwrite active database metrics!",
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    OutlinedTextField(
-                        value = importJsonText,
-                        onValueChange = { 
-                            importJsonText = it
-                            importErrorMsg = null 
+                    Button(
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        onClick = {
+                            fileImportLauncher.launch(arrayOf("*/*"))
                         },
-                        placeholder = { Text("Paste JSON backup string here...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            fontSize = 11.sp
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    )
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "Browse folder icon")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Select Backup JSON File")
+                    }
                     if (importErrorMsg != null) {
                         Text(
                             text = importErrorMsg ?: "",
@@ -5908,30 +5940,8 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        if (importJsonText.trim().isEmpty()) {
-                            importErrorMsg = "Please paste a valid JSON backup string"
-                        } else {
-                            viewModel.importAppDataFromJSON(importJsonText) { success ->
-                                if (success) {
-                                    android.widget.Toast.makeText(context, "Archive restored successfully!", android.widget.Toast.LENGTH_LONG).show()
-                                    showImportDialog = false
-                                } else {
-                                    importErrorMsg = "Failed to parse backup JSON. Please ensure the code is complete and valid."
-                                }
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Verify & Restore")
-                }
-            },
-            dismissButton = {
                 TextButton(onClick = { showImportDialog = false }) {
-                    Text("Cancel")
+                    Text("Close")
                 }
             }
         )
