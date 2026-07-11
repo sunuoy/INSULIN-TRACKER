@@ -509,6 +509,27 @@ fun LoginScreen(viewModel: GlucoViewModel) {
     val loginError by viewModel.loginError.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    var prefilledGoogleEmail by remember { mutableStateOf("") }
+    var prefilledGoogleName by remember { mutableStateOf("") }
+    var prefilledGoogleUsername by remember { mutableStateOf("") }
+
+    val googleAccountPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
+            if (accountName != null) {
+                val namePart = accountName.substringBefore("@")
+                val formattedName = namePart.split(".", "_", "-")
+                    .joinToString(" ") { it.replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase(java.util.Locale.getDefault()) else char.toString() } }
+                prefilledGoogleEmail = accountName
+                prefilledGoogleName = formattedName
+                prefilledGoogleUsername = namePart.lowercase()
+                showGoogleSignInDialog = true
+            }
+        }
+    }
+
     if (showForgotPasswordDialog) {
         var resetUsername by remember { mutableStateOf("") }
         var resetEmail by remember { mutableStateOf("") }
@@ -570,6 +591,37 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                         shape = RoundedCornerShape(10.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
+
+                    Button(
+                        onClick = {
+                            val trimmedEmail = resetEmail.trim()
+                            if (trimmedEmail.isEmpty()) {
+                                viewModel.setLoginError("Please enter your email ID to receive a reset link.")
+                            } else {
+                                try {
+                                    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                    auth.sendPasswordResetEmail(trimmedEmail)
+                                        .addOnCompleteListener { task ->
+                                            if (task.isSuccessful) {
+                                                android.widget.Toast.makeText(context, "Reset link has been transmitted to $trimmedEmail!", android.widget.Toast.LENGTH_LONG).show()
+                                                showForgotPasswordDialog = false
+                                            } else {
+                                                viewModel.setLoginError("Error: " + (task.exception?.localizedMessage ?: "Failed to send reset link"))
+                                            }
+                                        }
+                                } catch (e: Exception) {
+                                    viewModel.setLoginError("Firebase not initialized: ${e.message}")
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("send_email_reset_link_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Email, contentDescription = "Send Link", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Send Reset Link to Email")
+                    }
 
                     OutlinedTextField(
                         value = resetNewPassword,
@@ -945,14 +997,23 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                 OutlinedButton(
                     onClick = {
                         try {
-                            android.widget.Toast.makeText(context, "Redirecting to Google login webpage...", android.widget.Toast.LENGTH_LONG).show()
-                            val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://accounts.google.com"))
-                            browserIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            context.startActivity(browserIntent)
+                            val intent = android.accounts.AccountManager.newChooseAccountIntent(
+                                null,
+                                null,
+                                arrayOf("com.google"),
+                                null,
+                                null,
+                                null,
+                                null
+                            )
+                            googleAccountPickerLauncher.launch(intent)
                         } catch (e: Exception) {
-                            android.widget.Toast.makeText(context, "Redirecting to Google login...", android.widget.Toast.LENGTH_SHORT).show()
+                            android.util.Log.e("GoogleSignIn", "Failed to launch native account picker: ${e.message}", e)
+                            prefilledGoogleEmail = ""
+                            prefilledGoogleName = ""
+                            prefilledGoogleUsername = ""
+                            showGoogleSignInDialog = true
                         }
-                        showGoogleSignInDialog = true
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1023,6 +1084,9 @@ fun LoginScreen(viewModel: GlucoViewModel) {
 
     if (showGoogleSignInDialog) {
         GoogleSignInDialog(
+            initialFullName = prefilledGoogleName,
+            initialEmail = prefilledGoogleEmail,
+            initialUsername = prefilledGoogleUsername,
             onDismiss = { showGoogleSignInDialog = false },
             onSignInSuccess = { fullName, email, username ->
                 viewModel.loginWithGoogleProfile(fullName, email, username)
@@ -1080,14 +1144,17 @@ fun GoogleLogoIcon(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoogleSignInDialog(
+    initialFullName: String = "",
+    initialEmail: String = "",
+    initialUsername: String = "",
     onDismiss: () -> Unit,
     onSignInSuccess: (fullName: String, email: String, username: String) -> Unit
 ) {
     var step by remember { mutableIntStateOf(1) } // 1: Choose account, 2: OTP, 3: Success
 
-    var fullName by remember { mutableStateOf("") }
-    var emailId by remember { mutableStateOf("") }
-    var userName by remember { mutableStateOf("") }
+    var fullName by remember(initialFullName) { mutableStateOf(initialFullName) }
+    var emailId by remember(initialEmail) { mutableStateOf(initialEmail) }
+    var userName by remember(initialUsername) { mutableStateOf(initialUsername) }
     
     var otpInput by remember { mutableStateOf("") }
     var generatedOtp by remember { mutableStateOf("") }
@@ -6753,6 +6820,103 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Clear All App Data", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // App Updates Card
+            val updateStatus by viewModel.updateCheckStatus.collectAsStateWithLifecycle()
+            val latestVersion by viewModel.latestReleaseVersion.collectAsStateWithLifecycle()
+            val latestApkUrl by viewModel.latestReleaseApkUrl.collectAsStateWithLifecycle()
+            val releaseNotes by viewModel.latestReleaseNotes.collectAsStateWithLifecycle()
+
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("app_updates_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "App Version & GitHub Updates",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Current Version",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            Text(
+                                text = "v1.0.7 (Build 8)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        
+                        Button(
+                            onClick = { viewModel.checkForAppUpdates() },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Check update", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Check Updates", fontSize = 12.sp)
+                        }
+                    }
+
+                    if (updateStatus != null) {
+                        Divider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "Status: $updateStatus",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (updateStatus?.startsWith("New") == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            if (updateStatus?.startsWith("New") == true && !latestApkUrl.isNullOrEmpty()) {
+                                if (!releaseNotes.isNullOrEmpty()) {
+                                    Text(
+                                        text = "Release Notes:\n$releaseNotes",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        maxLines = 4,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val browserIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(latestApkUrl))
+                                            browserIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                            context.startActivity(browserIntent)
+                                        } catch (e: Exception) {
+                                            android.widget.Toast.makeText(context, "Could not open browser: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.ArrowDownward, contentDescription = "Download")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Download APK from GitHub")
+                                }
+                            }
+                        }
                     }
                 }
             }
