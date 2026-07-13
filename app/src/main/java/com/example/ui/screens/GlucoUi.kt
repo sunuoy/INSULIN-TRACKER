@@ -6422,6 +6422,43 @@ fun SettingsScreen(
         }
     }
 
+    val googleAccountPickerLauncherForDrive = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val accountName = result.data?.getStringExtra(android.accounts.AccountManager.KEY_ACCOUNT_NAME)
+            if (!accountName.isNullOrEmpty()) {
+                val account = android.accounts.Account(accountName, "com.google")
+                val accountManager = android.accounts.AccountManager.get(context)
+                val activity = context as? android.app.Activity
+                if (activity != null) {
+                    accountManager.getAuthToken(
+                        account,
+                        "oauth2:https://www.googleapis.com/auth/drive.file",
+                        null,
+                        activity,
+                        { future ->
+                            try {
+                                val bundle = future.result
+                                val token = bundle.getString(android.accounts.AccountManager.KEY_AUTHTOKEN)
+                                if (!token.isNullOrEmpty()) {
+                                    viewModel.setGoogleDriveAccessToken(token)
+                                    android.widget.Toast.makeText(context, "Successfully authorized Google Drive automatically for $accountName!", android.widget.Toast.LENGTH_LONG).show()
+                                } else {
+                                    android.widget.Toast.makeText(context, "Failed to retrieve authorization token.", android.widget.Toast.LENGTH_LONG).show()
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("GoogleDriveAuth", "Failed to retrieve token", e)
+                                android.widget.Toast.makeText(context, "Authorization failed: ${e.localizedMessage}", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        null
+                    )
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -6781,6 +6818,44 @@ fun SettingsScreen(
 
                     var tokenInput by remember { mutableStateOf(gdAccessToken) }
                     var tokenVisible by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(gdAccessToken) {
+                        tokenInput = gdAccessToken
+                    }
+
+                    // Authorize Automatically Button
+                    Button(
+                        onClick = {
+                            try {
+                                val intent = android.accounts.AccountManager.newChooseAccountIntent(
+                                    null,
+                                    null,
+                                    arrayOf("com.google"),
+                                    null,
+                                    null,
+                                    null,
+                                    null
+                                )
+                                googleAccountPickerLauncherForDrive.launch(intent)
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(context, "Failed to launch account chooser: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("gd_auth_auto_button"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.AccountCircle, contentDescription = "Authorize Automatically", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Authorize Google Drive Automatically")
+                    }
+
+                    Text(
+                        text = "Or input Google Drive Access Token manually:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        fontWeight = FontWeight.Bold
+                    )
 
                     OutlinedTextField(
                         value = tokenInput,
