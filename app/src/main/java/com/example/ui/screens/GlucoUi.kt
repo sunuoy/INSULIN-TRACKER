@@ -867,10 +867,7 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                                 }
                             }
                         } else {
-                            val success = viewModel.login(username, password, isRememberMeChecked)
-                            if (success) {
-                                android.widget.Toast.makeText(context, "Successfully authorized!", android.widget.Toast.LENGTH_SHORT).show()
-                            }
+                            viewModel.login(username, password, isRememberMeChecked)
                         }
                     },
                     modifier = Modifier
