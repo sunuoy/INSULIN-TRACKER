@@ -884,7 +884,7 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = if (isRegisterMode) "Create Account" else "Secure Login",
+                        text = if (isRegisterMode) "Create Account" else "Login",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
