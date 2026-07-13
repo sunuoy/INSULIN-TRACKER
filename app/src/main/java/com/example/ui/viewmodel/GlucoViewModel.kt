@@ -39,6 +39,7 @@ enum class AppScreen {
     SETTINGS
 }
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class GlucoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: AppRepository
