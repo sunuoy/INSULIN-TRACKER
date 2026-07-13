@@ -617,6 +617,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         android.widget.Toast.makeText(getApplication(), "Successfully authorized!", android.widget.Toast.LENGTH_SHORT).show()
+                        // Automatically fetch Google Drive token on successful login
+                        fetchGoogleDriveTokenAutomatically(getApplication(), targetEmail)
                         syncAllDataToFirebase()
                     }
                     .addOnFailureListener { e ->
@@ -989,8 +991,15 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         val isRememberChecked = prefs.getBoolean("remember_me_checked", false)
         _rememberMe.value = isRememberChecked
         if (isRememberChecked) {
-            _savedUsernameOrEmail.value = prefs.getString("remember_me_username", "") ?: ""
+            val userVal = prefs.getString("remember_me_username", "") ?: ""
+            _savedUsernameOrEmail.value = userVal
             _savedPassword.value = prefs.getString("remember_me_password", "") ?: ""
+
+            // Auto-auth Google Drive on startup for saved user
+            val resolvedEmail = prefs.getString("user_email_$userVal", "") ?: ""
+            if (resolvedEmail.isNotEmpty()) {
+                fetchGoogleDriveTokenAutomatically(application, resolvedEmail)
+            }
         }
 
         // Clean auto-generated sandbox metrics on initial startup to protect standard user's logs
@@ -1037,7 +1046,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     private fun ensureMinimumSetup() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             // Profile Init
             val currentProf = repository.getAnyProfileSync()
             if (currentProf == null) {
@@ -2647,6 +2656,32 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                     _isGoogleDriveSyncing.value = false
                     onComplete(false, "Connection error: ${e.message}")
                 }
+            }
+        }
+    }
+
+    fun fetchGoogleDriveTokenAutomatically(context: Context, email: String) {
+        if (email.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val accountManager = android.accounts.AccountManager.get(context)
+                val accounts = accountManager.getAccountsByType("com.google")
+                val matchingAccount = accounts.find { it.name.equals(email, ignoreCase = true) }
+                if (matchingAccount != null) {
+                    val token = accountManager.blockingGetAuthToken(
+                        matchingAccount,
+                        "oauth2:https://www.googleapis.com/auth/drive.file",
+                        true
+                    )
+                    if (!token.isNullOrEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            setGoogleDriveAccessToken(token)
+                            android.util.Log.d("GoogleDriveAutoSync", "Successfully auto-authenticated Google Drive for $email")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("GoogleDriveAutoSync", "Failed to auto-authenticate Google Drive: ${e.message}")
             }
         }
     }
