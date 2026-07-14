@@ -4172,75 +4172,145 @@ fun RemindersScreen(
             }
         }
     ) { innerPadding ->
+        var activeFilter by remember { mutableStateOf("All") }
+        val filteredList = remember(remindersList, activeFilter) {
+            when (activeFilter) {
+                "Insulin" -> remindersList.filter { it.reminderType == "Insulin" }
+                "Checks" -> remindersList.filter { it.reminderType != "Insulin" }
+                else -> remindersList
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .testTag("reminders_screen")
         ) {
-            Row(
+            // Glassmorphic Premium Header Card
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             ) {
-                Box(
-                    modifier = Modifier.size(48.dp),
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "alarmPulse")
-                    val pulseScale by infiniteTransition.animateFloat(
-                        initialValue = 0.8f,
-                        targetValue = 1.3f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1200, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "pulseScale"
-                    )
-                    val pulseAlpha by infiniteTransition.animateFloat(
-                        initialValue = 0.1f,
-                        targetValue = 0.35f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1200, easing = FastOutSlowInEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "pulseAlpha"
-                    )
-                    
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawCircle(
-                            color = Color(0xFF2196F3).copy(alpha = pulseAlpha),
-                            radius = (size.width / 2f) * pulseScale
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier.size(44.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val infiniteTransition = rememberInfiniteTransition(label = "alarmPulse")
+                            val pulseScale by infiniteTransition.animateFloat(
+                                initialValue = 0.8f,
+                                targetValue = 1.3f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1200, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "pulseScale"
+                            )
+                            val pulseAlpha by infiniteTransition.animateFloat(
+                                initialValue = 0.1f,
+                                targetValue = 0.35f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1200, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "pulseAlpha"
+                            )
+                            
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawCircle(
+                                    color = Color(0xFF2196F3).copy(alpha = pulseAlpha),
+                                    radius = (size.width / 2f) * pulseScale
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccessAlarms,
+                                    contentDescription = "Alarms header",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Daily Reminders", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Enable timers for dose checks", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        }
                     }
+                    
+                    val activeCount = remindersList.count { it.isEnabled }
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                        contentAlignment = Alignment.Center
+                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AccessAlarms,
-                            contentDescription = "Alarms header",
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        Text(
+                            text = "$activeCount Active",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text("Daily Reminders", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text("Enable timers for dose checks and levels", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.outline)
                 }
             }
 
-            if (remindersList.isEmpty()) {
+            // Custom Filter Chips Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    Pair("All", "All Alerts"),
+                    Pair("Insulin", "Insulin Doses"),
+                    Pair("Checks", "Glucose Checks")
+                ).forEach { (filterKey, filterLabel) ->
+                    val isSelected = activeFilter == filterKey
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(20.dp)
+                            )
+                            .clickable { activeFilter = filterKey }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = filterLabel,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            if (filteredList.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.AlarmOff, contentDescription = "No Alerts set", modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline.copy(0.4f))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("No reminders set yet. Tap '+' below.", color = MaterialTheme.colorScheme.outline)
+                        Text("No reminders in this category. Tap '+' below.", color = MaterialTheme.colorScheme.outline)
                     }
                 }
             } else {
@@ -4249,7 +4319,7 @@ fun RemindersScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(remindersList, key = { it.id }) { alert ->
+                    items(filteredList, key = { it.id }) { alert ->
                         ReminderCard(
                             target = alert,
                             onToggle = { viewModel.toggleReminder(alert) },
@@ -4281,7 +4351,8 @@ fun ReminderCard(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (target.isEnabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        ),
+        border = if (target.isEnabled) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)) else null
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (target.isEnabled) {
@@ -4303,127 +4374,190 @@ fun ReminderCard(
                 }
             }
             
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Top section: Left Info details & Right Time/Switch details
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                // Colored Left Visual Segment Indicator
+                if (target.isEnabled) {
+                    val accentBarColor = if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(5.dp)
+                            .background(accentBarColor)
+                    )
+                }
+                
+                Column(modifier = Modifier.weight(1f).padding(16.dp)) {
+                    // Top section: Left Info details & Right Time/Switch details
                     Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .background(
-                                    if (target.isEnabled) {
-                                        if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.outline.copy(0.15f)
-                                    },
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .background(
+                                        if (target.isEnabled) {
+                                            if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.outline.copy(0.15f)
+                                        },
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (target.reminderType == "Insulin") Icons.Default.Vaccines else Icons.Default.WaterDrop,
+                                    contentDescription = "Alert type",
+                                    tint = if (target.isEnabled) {
+                                        if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.outline
+                                    },
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.padding(end = 8.dp)) {
+                                Text(
+                                    text = target.label,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (target.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(MaterialTheme.colorScheme.outline.copy(0.12f), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(target.reminderType, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Icon(
+                                                imageVector = Icons.Default.VolumeUp,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(10.dp),
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                            Text(target.tone, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Right side: Time display, Switch toggle, and Expand Indicator
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = viewModel.formatHourMinute(target.hour, target.minute),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (target.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                            )
+                            Switch(
+                                checked = target.isEnabled,
+                                onCheckedChange = { onToggle() },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            )
                             Icon(
-                                imageVector = if (target.reminderType == "Insulin") Icons.Default.Vaccines else Icons.Default.WaterDrop,
-                                contentDescription = "Alert type",
-                                tint = if (target.isEnabled) {
-                                    if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.outline
-                                },
+                                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Expand controls",
+                                tint = MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.padding(end = 8.dp)) {
-                            Text(
-                                text = target.label,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (target.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .background(MaterialTheme.colorScheme.outline.copy(0.12f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 1.dp)
-                                ) {
-                                    Text(target.reminderType, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.outline)
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 1.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        Icon(
-                                            imageVector = Icons.Default.VolumeUp,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(10.dp),
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                        Text(target.tone, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    // Weekdays Circular Pills layout
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val parsedDays = remember(target.daysOfWeek) {
+                        val lower = target.daysOfWeek.lowercase()
+                        if (lower == "daily" || lower == "every day") {
+                            listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                        } else {
+                            target.daysOfWeek.split(",").map { it.trim() }
+                        }
+                    }
+                    val allDays = listOf(
+                        Pair("M", "Mon"),
+                        Pair("T", "Tue"),
+                        Pair("W", "Wed"),
+                        Pair("T", "Thu"),
+                        Pair("F", "Fri"),
+                        Pair("S", "Sat"),
+                        Pair("S", "Sun")
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        allDays.forEach { (letter, dayName) ->
+                            val isActive = parsedDays.any { it.startsWith(dayName, ignoreCase = true) }
+                            Box(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .background(
+                                        if (isActive && target.isEnabled) {
+                                            if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
+                                        } else {
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                                        },
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = letter,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isActive && target.isEnabled) {
+                                        if (target.reminderType == "Insulin") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onTertiary
+                                    } else {
+                                        MaterialTheme.colorScheme.outline
                                     }
-                                }
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(target.daysOfWeek, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                                )
                             }
                         }
                     }
 
-                    // Right side: Time display, Switch toggle, and Expand Indicator
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = viewModel.formatHourMinute(target.hour, target.minute),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (target.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                        Switch(
-                            checked = target.isEnabled,
-                            onCheckedChange = { onToggle() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Expand controls",
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                // Bottom section: Divider & Control buttons (Edit & Delete) - expandable
-                androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
-                    Column {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit reminder", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete reminder", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                    // Bottom section: Divider & Control buttons (Edit & Delete) - expandable
+                    androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
+                        Column {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit reminder", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete reminder", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                                }
                             }
                         }
                     }
