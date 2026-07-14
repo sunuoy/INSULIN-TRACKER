@@ -670,6 +670,149 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     }
 }
 
+@Composable
+fun LoginLogo3D(isRegisterMode: Boolean, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "logo3d")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = -5f,
+        targetValue = 5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "rotation"
+    )
+
+    androidx.compose.foundation.Canvas(
+        modifier = modifier
+            .size(90.dp)
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+                rotationZ = rotation
+            }
+    ) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
+        
+        // 1. Draw 3D outer sphere shadow
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.25f),
+            radius = cx * 0.95f,
+            center = androidx.compose.ui.geometry.Offset(cx + 2.dp.toPx(), cy + 4.dp.toPx())
+        )
+        
+        // 2. Draw outer glowing ring with a nice gradient
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF818CF8), Color(0xFF4F46E5), Color(0xFF312E81)),
+                center = androidx.compose.ui.geometry.Offset(cx - w * 0.1f, cy - h * 0.1f),
+                radius = cx * 0.9f
+            ),
+            radius = cx * 0.9f
+        )
+        
+        // 3. Draw inner glassmorphic reflection overlay (specular reflection)
+        drawCircle(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.4f),
+                    Color.White.copy(alpha = 0.0f)
+                ),
+                startY = cy - cx * 0.85f,
+                endY = cy
+            ),
+            radius = cx * 0.85f
+        )
+        
+        // 4. Draw central 3D Shield or Heart representation
+        val centerRadius = cx * 0.45f
+        if (isRegisterMode) {
+            // Register: 3D Person / ID badge icon
+            // Draw head
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White, Color(0xFFE2E8F0), Color(0xFF94A3B8)),
+                    center = androidx.compose.ui.geometry.Offset(cx - centerRadius * 0.2f, cy - centerRadius * 0.4f),
+                    radius = centerRadius * 0.4f
+                ),
+                radius = centerRadius * 0.35f,
+                center = androidx.compose.ui.geometry.Offset(cx, cy - centerRadius * 0.35f)
+            )
+            // Draw body curve
+            val bodyPath = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx - centerRadius * 0.6f, cy + centerRadius * 0.6f)
+                quadraticTo(cx, cy + centerRadius * 0.05f, cx + centerRadius * 0.6f, cy + centerRadius * 0.6f)
+                quadraticTo(cx + centerRadius * 0.5f, cy + centerRadius * 0.85f, cx, cy + centerRadius * 0.85f)
+                quadraticTo(cx - centerRadius * 0.5f, cy + centerRadius * 0.85f, cx - centerRadius * 0.6f, cy + centerRadius * 0.6f)
+                close()
+            }
+            drawPath(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White, Color(0xFFCBD5E1), Color(0xFF64748B)),
+                    center = androidx.compose.ui.geometry.Offset(cx, cy + centerRadius * 0.3f),
+                    radius = centerRadius * 0.7f
+                ),
+                path = bodyPath
+            )
+        } else {
+            // Login: 3D Secure Shield with a Lock inside
+            val shieldPath = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx, cy - centerRadius * 0.8f)
+                quadraticTo(cx + centerRadius * 0.8f, cy - centerRadius * 0.7f, cx + centerRadius * 0.8f, cy - centerRadius * 0.2f)
+                quadraticTo(cx + centerRadius * 0.8f, cy + centerRadius * 0.4f, cx, cy + centerRadius * 0.9f)
+                quadraticTo(cx - centerRadius * 0.8f, cy + centerRadius * 0.4f, cx - centerRadius * 0.8f, cy - centerRadius * 0.2f)
+                quadraticTo(cx - centerRadius * 0.8f, cy - centerRadius * 0.7f, cx, cy - centerRadius * 0.8f)
+                close()
+            }
+            drawPath(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFFDE047), Color(0xFFEAB308), Color(0xFF854D0E)),
+                    center = androidx.compose.ui.geometry.Offset(cx - centerRadius * 0.2f, cy - centerRadius * 0.3f),
+                    radius = centerRadius * 0.9f
+                ),
+                path = shieldPath
+            )
+            
+            // Draw shackle and lock body inside shield
+            val lockBodyLeft = cx - centerRadius * 0.3f
+            val lockBodyTop = cy
+            val lockBodyW = centerRadius * 0.6f
+            val lockBodyH = centerRadius * 0.45f
+            
+            drawRoundRect(
+                color = Color.White,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - centerRadius * 0.2f, cy - centerRadius * 0.25f),
+                size = androidx.compose.ui.geometry.Size(centerRadius * 0.4f, centerRadius * 0.4f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(centerRadius * 0.2f, centerRadius * 0.2f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+            )
+            drawRoundRect(
+                brush = Brush.verticalGradient(listOf(Color.White, Color(0xFFE2E8F0))),
+                topLeft = androidx.compose.ui.geometry.Offset(lockBodyLeft, lockBodyTop),
+                size = androidx.compose.ui.geometry.Size(lockBodyW, lockBodyH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+            )
+            drawCircle(
+                color = Color(0xFF854D0E),
+                radius = 2.dp.toPx(),
+                center = androidx.compose.ui.geometry.Offset(cx, cy + lockBodyH * 0.4f)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(viewModel: GlucoViewModel) {
@@ -815,25 +958,43 @@ fun LoginScreen(viewModel: GlucoViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
-            .padding(24.dp),
+            .background(Color(0xFF0B0F19)),
         contentAlignment = Alignment.Center
     ) {
+        // Decorative Ambient Glowing Blobs
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF4F46E5).copy(alpha = 0.22f), Color.Transparent),
+                    radius = size.width * 0.65f
+                ),
+                radius = size.width * 0.65f,
+                center = androidx.compose.ui.geometry.Offset(0f, size.height * 0.1f)
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF06B6D4).copy(alpha = 0.18f), Color.Transparent),
+                    radius = size.width * 0.65f
+                ),
+                radius = size.width * 0.65f,
+                center = androidx.compose.ui.geometry.Offset(size.width, size.height * 0.9f)
+            )
+        }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .widthIn(max = 420.dp)
+                .widthIn(max = 400.dp)
+                .padding(24.dp)
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(24.dp)
+                )
                 .testTag("login_card"),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF151B2C).copy(alpha = 0.88f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -842,20 +1003,8 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Clinic clinical brand icon
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isRegisterMode) Icons.Default.AccountBox else Icons.Default.Lock,
-                        contentDescription = "Clinician Secure Log",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                // Custom 3D Logo / Secure Badge
+                LoginLogo3D(isRegisterMode = isRegisterMode)
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -1696,13 +1845,13 @@ fun HomeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(11.dp)
             ) {
                 // Log Insulin Button Card
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(115.dp)
+                        .height(100.dp)
                         .clickable { onLogInsulinClick() }
                         .testTag("home_add_insulin_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -1736,12 +1885,12 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
+                                .padding(15.dp),
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(35.dp)
                                     .background(Color(0xFF3F51B5), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1750,7 +1899,7 @@ fun HomeScreen(
                                     contentDescription = "Insulin Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(20.dp)
+                                        .size(19.dp)
                                         .graphicsLayer {
                                             rotationZ = vaccinesRotation
                                         }
@@ -1768,7 +1917,7 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(115.dp)
+                        .height(111.dp)
                         .clickable { onLogGlucoseClick() }
                         .testTag("home_add_glucose_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
@@ -1802,12 +1951,12 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
+                                .padding(15.dp),
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(35.dp)
                                     .background(Color(0xFFFB8C00), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1816,7 +1965,7 @@ fun HomeScreen(
                                     contentDescription = "Glucose Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(20.dp)
+                                        .size(19.dp)
                                         .graphicsLayer {
                                             translationY = waterTranslationY
                                         }
@@ -1858,13 +2007,13 @@ fun HomeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(11.dp)
             ) {
                 // Log Blood Pressure Card
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(115.dp)
+                        .height(111.dp)
                         .clickable { onLogBloodPressureClick() }
                         .testTag("home_add_bp_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
@@ -1898,12 +2047,12 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
+                                .padding(15.dp),
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(35.dp)
                                     .background(Color(0xFFE53935), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1912,7 +2061,7 @@ fun HomeScreen(
                                     contentDescription = "Blood Pressure Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(20.dp)
+                                        .size(19.dp)
                                         .graphicsLayer {
                                             scaleX = heartScale
                                             scaleY = heartScale
@@ -1931,7 +2080,7 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(115.dp)
+                        .height(111.dp)
                         .clickable { onRefillClick() }
                         .testTag("home_add_refill_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
@@ -1965,12 +2114,12 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
+                                .padding(15.dp),
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(35.dp)
                                     .background(Color(0xFF00ACC1), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1979,7 +2128,7 @@ fun HomeScreen(
                                     contentDescription = "Refill Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(20.dp)
+                                        .size(19.dp)
                                         .graphicsLayer {
                                             rotationZ = refreshRotation
                                         }
@@ -7826,7 +7975,7 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
 
     androidx.compose.foundation.Canvas(
         modifier = modifier
-            .size(48.dp)
+            .size(46.dp)
             .graphicsLayer {
                 this.translationY = translationY
             }
@@ -7839,8 +7988,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
             radius = width / 2f
         )
         
-        val cartridgeWidth = 14.dp.toPx()
-        val cartridgeHeight = 32.dp.toPx()
+        val cartridgeWidth = 13.5.dp.toPx()
+        val cartridgeHeight = 31.dp.toPx()
         val left = (width - cartridgeWidth) / 2f
         val top = (height - cartridgeHeight) / 2f
         
@@ -7870,8 +8019,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
             )
         }
         
-        val tipWidth = 4.dp.toPx()
-        val tipHeight = 4.dp.toPx()
+        val tipWidth = 3.8.dp.toPx()
+        val tipHeight = 3.8.dp.toPx()
         drawRect(
             color = Color.White.copy(alpha = 0.7f),
             topLeft = androidx.compose.ui.geometry.Offset((width - tipWidth) / 2f, top - tipHeight),
@@ -7879,8 +8028,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
         )
         
         val excX = width / 2f
-        val excYStart = top + 6.dp.toPx()
-        val excYEnd = top + 14.dp.toPx()
+        val excYStart = top + 5.8.dp.toPx()
+        val excYEnd = top + 13.5.dp.toPx()
         
         drawLine(
             color = Color.Red,
@@ -7890,7 +8039,7 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
         )
         drawCircle(
             color = Color.Red,
-            radius = 1.25.dp.toPx(),
+            radius = 1.2.dp.toPx(),
             center = androidx.compose.ui.geometry.Offset(excX, excYEnd)
         )
     }
