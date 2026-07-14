@@ -1672,6 +1672,28 @@ fun HomeScreen(
 
         // Action Buttons Grid-break
         item {
+            val vaccinesTransition = rememberInfiniteTransition(label = "vaccines")
+            val vaccinesRotation by vaccinesTransition.animateFloat(
+                initialValue = -8f,
+                targetValue = 12f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1400, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "vaccinesRotation"
+            )
+
+            val waterTransition = rememberInfiniteTransition(label = "water")
+            val waterTranslationY by waterTransition.animateFloat(
+                initialValue = -3f,
+                targetValue = 5f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1100, easing = LinearOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "waterTranslationY"
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1723,7 +1745,16 @@ fun HomeScreen(
                                     .background(Color(0xFF3F51B5), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Vaccines, contentDescription = "Insulin Icon", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Vaccines,
+                                    contentDescription = "Insulin Icon",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            rotationZ = vaccinesRotation
+                                        }
+                                )
                             }
                             Column {
                                 Text("Insulin Dose", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
@@ -1780,7 +1811,16 @@ fun HomeScreen(
                                     .background(Color(0xFFFB8C00), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.WaterDrop, contentDescription = "Glucose Icon", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    imageVector = Icons.Default.WaterDrop,
+                                    contentDescription = "Glucose Icon",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            translationY = waterTranslationY
+                                        }
+                                )
                             }
                             Column {
                                 Text("Glucose Level", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
@@ -1794,6 +1834,28 @@ fun HomeScreen(
 
         // Action Buttons Row 2 (Blood Pressure & Cartridge Refill)
         item {
+            val heartTransition = rememberInfiniteTransition(label = "heart")
+            val heartScale by heartTransition.animateFloat(
+                initialValue = 0.9f,
+                targetValue = 1.15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(800, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "heartScale"
+            )
+
+            val refreshTransition = rememberInfiniteTransition(label = "refresh")
+            val refreshRotation by refreshTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(3000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "refreshRotation"
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1845,7 +1907,17 @@ fun HomeScreen(
                                     .background(Color(0xFFE53935), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Favorite, contentDescription = "Blood Pressure Icon", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "Blood Pressure Icon",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            scaleX = heartScale
+                                            scaleY = heartScale
+                                        }
+                                )
                             }
                             Column {
                                 Text("Blood Pressure", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
@@ -1902,7 +1974,16 @@ fun HomeScreen(
                                     .background(Color(0xFF00ACC1), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Refill Icon", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refill Icon",
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            rotationZ = refreshRotation
+                                        }
+                                )
                             }
                             Column {
                                 Text("Cartridge Refill", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
