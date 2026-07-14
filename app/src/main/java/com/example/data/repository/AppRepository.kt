@@ -12,6 +12,8 @@ import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
 import com.example.data.model.BloodPressureRecord
+import com.example.data.model.StepCountRecord
+import com.example.data.dao.StepDao
 import kotlinx.coroutines.flow.Flow
 
 class AppRepository(
@@ -20,7 +22,8 @@ class AppRepository(
     private val reminderDao: ReminderDao,
     private val profileDao: ProfileDao,
     private val cartridgeRefillLogDao: CartridgeRefillLogDao,
-    private val bloodPressureDao: BloodPressureDao
+    private val bloodPressureDao: BloodPressureDao,
+    private val stepDao: StepDao
 ) {
     // Insulin Doses
     val allInsulinRecords: Flow<List<InsulinRecord>> = insulinDao.getAllInsulinRecords()
@@ -152,5 +155,28 @@ class AppRepository(
 
     suspend fun getAnyReminderSync(): Reminder? {
         return reminderDao.getAnyReminderSync()
+    }
+
+    // Step Counts
+    val allStepRecords: Flow<List<StepCountRecord>> = stepDao.getAllStepRecords()
+
+    suspend fun insertStepRecord(record: StepCountRecord) {
+        stepDao.insertStepRecord(record)
+    }
+
+    suspend fun deleteStepRecord(record: StepCountRecord) {
+        stepDao.deleteStepRecord(record)
+    }
+
+    suspend fun deleteStepRecordById(id: Long) {
+        stepDao.deleteStepRecordById(id)
+    }
+
+    suspend fun clearAllStepRecords() {
+        stepDao.clearAllStepRecords()
+    }
+
+    suspend fun getAnyStepRecordSync(): StepCountRecord? {
+        return stepDao.getAnyStepRecordSync()
     }
 }

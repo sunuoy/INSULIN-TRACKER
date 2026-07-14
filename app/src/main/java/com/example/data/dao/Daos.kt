@@ -135,3 +135,24 @@ interface BloodPressureDao {
     suspend fun clearAllBloodPressureRecords()
 }
 
+@Dao
+interface StepDao {
+    @Query("SELECT * FROM step_count_records ORDER BY dateTimeMillis DESC")
+    fun getAllStepRecords(): Flow<List<com.example.data.model.StepCountRecord>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStepRecord(record: com.example.data.model.StepCountRecord)
+
+    @Delete
+    suspend fun deleteStepRecord(record: com.example.data.model.StepCountRecord)
+
+    @Query("DELETE FROM step_count_records WHERE id = :id")
+    suspend fun deleteStepRecordById(id: Long)
+
+    @Query("DELETE FROM step_count_records")
+    suspend fun clearAllStepRecords()
+
+    @Query("SELECT * FROM step_count_records LIMIT 1")
+    suspend fun getAnyStepRecordSync(): com.example.data.model.StepCountRecord?
+}
+

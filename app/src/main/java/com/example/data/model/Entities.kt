@@ -66,3 +66,11 @@ data class BloodPressureRecord(
     val notes: String = ""
 )
 
+@Entity(tableName = "step_count_records")
+data class StepCountRecord(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val steps: Int,
+    val dateTimeMillis: Long,
+    val notes: String = ""
+)
+

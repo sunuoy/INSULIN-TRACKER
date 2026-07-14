@@ -16,6 +16,8 @@ import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
 import com.example.data.model.BloodPressureRecord
+import com.example.data.model.StepCountRecord
+import com.example.data.dao.StepDao
 
 @Database(
     entities = [
@@ -24,9 +26,10 @@ import com.example.data.model.BloodPressureRecord
         Reminder::class,
         UserProfile::class,
         CartridgeRefillLog::class,
-        BloodPressureRecord::class
+        BloodPressureRecord::class,
+        StepCountRecord::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun cartridgeRefillLogDao(): CartridgeRefillLogDao
     abstract fun bloodPressureDao(): BloodPressureDao
+    abstract fun stepDao(): StepDao
 
     companion object {
         @Volatile

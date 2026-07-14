@@ -88,6 +88,7 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     var showRefillFormDialog by remember { mutableStateOf(false) }
     var editingRefillLog by remember { mutableStateOf<CartridgeRefillLog?>(null) }
     var showBloodPressureDialog by remember { mutableStateOf(false) }
+    var showStepDialog by remember { mutableStateOf(false) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -218,6 +219,20 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                                 Text("Clinical Profile", fontSize = 12.sp)
                             }
 
+                            // Go to Steps Tracker
+                            OutlinedButton(
+                                modifier = Modifier.fillMaxWidth().height(40.dp),
+                                onClick = {
+                                    scope.launch { drawerState.close() }
+                                    viewModel.navigateTo(AppScreen.STEPS)
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.DirectionsWalk, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Steps Tracker", fontSize = 12.sp)
+                            }
+
                             // Go to Settings Screen
                             OutlinedButton(
                                 modifier = Modifier.fillMaxWidth().height(40.dp),
@@ -266,6 +281,7 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                             val titleText = when (currentScreen) {
                                 AppScreen.HOME -> "Clinical Dashboard"
                                 AppScreen.HISTORY -> "Clinical Logs History"
+                                AppScreen.STEPS -> "Steps Tracker"
                                 AppScreen.REMINDERS -> "Medication Reminders"
                                 AppScreen.REPORTS -> "Interactive Reports"
                                 AppScreen.PROFILE -> "User Settings & Profile"
@@ -344,6 +360,7 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                     listOf(
                         NavigationItem("Home", Icons.Default.Home, Icons.Outlined.Home, AppScreen.HOME),
                         NavigationItem("Logs", Icons.Default.List, Icons.Outlined.List, AppScreen.HISTORY),
+                        NavigationItem("Steps", Icons.Default.DirectionsWalk, Icons.Outlined.DirectionsWalk, AppScreen.STEPS),
                         NavigationItem("Reminders", Icons.Default.Notifications, Icons.Outlined.Notifications, AppScreen.REMINDERS),
                         NavigationItem("Reports", Icons.Default.Assessment, Icons.Outlined.Assessment, AppScreen.REPORTS)
                     ).forEach { item ->
@@ -432,6 +449,17 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
                         onEditReminder = { reminder ->
                             viewModel.prepareEditReminder(reminder)
                             showReminderDialog = true
+                        }
+                    )
+                    AppScreen.STEPS -> StepsScreen(
+                        viewModel = viewModel,
+                        onAddStepClick = {
+                            viewModel.resetStepForm()
+                            showStepDialog = true
+                        },
+                        onEditStep = { record ->
+                            viewModel.prepareEditStep(record)
+                            showStepDialog = true
                         }
                     )
                     AppScreen.REPORTS -> ReportsScreen(viewModel = viewModel)
@@ -577,6 +605,17 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
              onSave = {
                  viewModel.saveBloodPressureRecord()
                  showBloodPressureDialog = false
+             }
+         )
+     }
+
+     if (showStepDialog) {
+         StepFormDialog(
+             viewModel = viewModel,
+             onDismiss = { showStepDialog = false },
+             onSave = {
+                 viewModel.saveStepRecord()
+                 showStepDialog = false
              }
          )
      }
@@ -7196,6 +7235,341 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun StepsScreen(
+    viewModel: com.example.ui.viewmodel.GlucoViewModel,
+    onAddStepClick: () -> Unit,
+    onEditStep: (com.example.data.model.StepCountRecord) -> Unit
+) {
+    val stepRecords by viewModel.stepRecords.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Calculate today's steps
+    val calendar = java.util.Calendar.getInstance()
+    val todayYear = calendar.get(java.util.Calendar.YEAR)
+    val todayDay = calendar.get(java.util.Calendar.DAY_OF_YEAR)
+
+    val todaySteps = stepRecords.filter { record ->
+        val recCal = java.util.Calendar.getInstance().apply { timeInMillis = record.dateTimeMillis }
+        recCal.get(java.util.Calendar.YEAR) == todayYear && recCal.get(java.util.Calendar.DAY_OF_YEAR) == todayDay
+    }.sumOf { it.steps }
+
+    val stepGoal = 10000
+    val progress = (todaySteps.toFloat() / stepGoal).coerceIn(0f, 1f)
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddStepClick,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Steps")
+            }
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Circular Progress Card
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Today's Progress",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(140.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                progress = progress,
+                                strokeWidth = 10.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = String.format("%,d", todaySteps),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Goal: $stepGoal",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = if (progress >= 1f) "Goal achieved! Excellent job!" else "${((1f - progress) * stepGoal).toInt()} steps remaining to goal",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            }
+
+            // Metrics Row Card
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Distance
+                    val estKm = todaySteps * 0.00075
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.DirectionsRun, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Distance", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text(String.format("%.2f km", estKm), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Calories
+                    val estKcal = todaySteps * 0.04
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.2f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Calories", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                            Text(String.format("%.0f kcal", estKcal), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // Steps Log Header
+            item {
+                Text(
+                    text = "Steps Logs History",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            if (stepRecords.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No step logs recorded. Click '+' to log your walking activity.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(stepRecords) { record ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DirectionsWalk,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = String.format("%,d steps", record.steps),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = viewModel.formatEpochToDate(record.dateTimeMillis),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                if (record.notes.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = record.notes,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Row {
+                                IconButton(onClick = { onEditStep(record) }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.outline)
+                                }
+                                IconButton(onClick = {
+                                    viewModel.deleteStepRecord(record)
+                                    android.widget.Toast.makeText(context, "Step log deleted", android.widget.Toast.LENGTH_SHORT).show()
+                                }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StepFormDialog(
+    viewModel: com.example.ui.viewmodel.GlucoViewModel,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var steps by remember { mutableStateOf(viewModel.stepsCount) }
+    var date by remember { mutableStateOf(viewModel.stepsDate.ifEmpty { viewModel.formatEpochToDateOnly(viewModel.getCurrentTimeMillis()) }) }
+    var time by remember { mutableStateOf(viewModel.stepsTime.ifEmpty { viewModel.formatEpochToTimeOnly(viewModel.getCurrentTimeMillis()) }) }
+    var notes by remember { mutableStateOf(viewModel.stepsNotes) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = if (viewModel.selectedStepIdToEdit == null) "Log Walking Steps" else "Edit Step Log",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                // Steps input
+                OutlinedTextField(
+                    value = steps,
+                    onValueChange = { steps = it },
+                    label = { Text("Steps") },
+                    placeholder = { Text("e.g. 5000") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                // Date selection
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Date (YYYY-MM-DD)") },
+                    placeholder = { Text("e.g. 2026-07-14") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                // Time selection
+                OutlinedTextField(
+                    value = time,
+                    onValueChange = { time = it },
+                    label = { Text("Time (HH:MM)") },
+                    placeholder = { Text("e.g. 18:30") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                // Notes input
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (Optional)") },
+                    placeholder = { Text("e.g. Morning walk around the park") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (steps.trim().toIntOrNull() == null) {
+                                android.widget.Toast.makeText(context, "Please enter a valid number of steps", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                viewModel.stepsCount = steps.trim()
+                                viewModel.stepsDate = date.trim()
+                                viewModel.stepsTime = time.trim()
+                                viewModel.stepsNotes = notes.trim()
+                                onSave()
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Save Log")
+                    }
+                }
+            }
+        }
     }
 }
 

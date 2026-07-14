@@ -11,6 +11,7 @@ import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
 import com.example.data.model.BloodPressureRecord
+import com.example.data.model.StepCountRecord
 import com.example.data.repository.AppRepository
 import com.example.data.api.GlucoBackendClient
 import com.example.data.api.SyncPayload
@@ -33,6 +34,7 @@ import java.util.*
 enum class AppScreen {
     HOME,
     HISTORY,
+    STEPS,
     REMINDERS,
     REPORTS,
     PROFILE,
@@ -114,6 +116,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     val allProfiles: StateFlow<List<UserProfile>>
     val refillLogs: StateFlow<List<CartridgeRefillLog>>
     val bloodPressureRecords: StateFlow<List<BloodPressureRecord>>
+    val stepRecords: StateFlow<List<StepCountRecord>>
 
     // Search and Filter States
     private val _insulinTypeFilter = MutableStateFlow("All")
@@ -157,6 +160,13 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     var bpTime = ""
     var bpNotes = ""
     var selectedBpIdToEdit: Long? = null
+
+    // Form Temporary State (Step Count)
+    var stepsCount = ""
+    var stepsDate = ""
+    var stepsTime = ""
+    var stepsNotes = ""
+    var selectedStepIdToEdit: Long? = null
 
     // Backend Synchronization parameters
     private val _backendBaseUrl = MutableStateFlow("https://httpbin.org/")
@@ -488,6 +498,17 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                         "daysOfWeek" to rem.daysOfWeek
                     )
                     remColl.document(rem.id.toString()).set(map)
+                }
+
+                // 6. Sync Step Records
+                val stepsColl = db.collection("users").document(userId).collection("step_records")
+                stepRecords.value.forEach { record ->
+                    val map = hashMapOf(
+                        "steps" to record.steps,
+                        "timestamp" to record.dateTimeMillis,
+                        "notes" to record.notes
+                    )
+                    stepsColl.document(record.id.toString()).set(map)
                 }
 
                 val msg = "Full clinical database synced successfully with Firestore!"
@@ -961,7 +982,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             database.reminderDao(),
             database.profileDao(),
             database.cartridgeRefillLogDao(),
-            database.bloodPressureDao()
+            database.bloodPressureDao(),
+            database.stepDao()
         )
 
         // Flows from database
@@ -985,6 +1007,9 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         bloodPressureRecords = repository.allBloodPressureRecords
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        stepRecords = repository.allStepRecords
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         // Ensure database default entities
@@ -1038,9 +1063,10 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 repository.allBloodPressureRecords,
                 repository.allReminders,
                 repository.allRefillLogs,
+                repository.allStepRecords,
                 _googleDriveAccessToken
             ) { array: Array<Any?> ->
-                array[5] as String
+                array[6] as String
             }
             .debounce(3000) // 3-second debounce to avoid spamming the API on batch updates
             .collect { token ->
@@ -1429,6 +1455,82 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         bpDate = formatEpochToDateOnly(getCurrentTimeMillis())
         bpTime = formatEpochToTimeOnly(getCurrentTimeMillis())
         bpNotes = ""
+    }
+
+    // Business Logic Actions (Step Count)
+    fun saveStepRecord() {
+        val stepsVal = stepsCount.trim().toIntOrNull() ?: 0
+        val calendar = composeCalendarFromDateStrAndTimeStr(stepsDate.trim(), stepsTime.trim())
+        val timeInMillis = calendar.timeInMillis
+
+        val record = if (selectedStepIdToEdit != null) {
+            StepCountRecord(
+                id = selectedStepIdToEdit!!,
+                steps = stepsVal,
+                dateTimeMillis = timeInMillis,
+                notes = stepsNotes
+            )
+        } else {
+            StepCountRecord(
+                steps = stepsVal,
+                dateTimeMillis = timeInMillis,
+                notes = stepsNotes
+            )
+        }
+
+        viewModelScope.launch {
+            repository.insertStepRecord(record)
+
+            // Cloud Firestore Sync
+            try {
+                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                val userId = auth.currentUser?.uid ?: (if (_loggedInUser.value.isNotEmpty()) "user_" + _loggedInUser.value.lowercase().replace(" ", "_") else "guest_patient")
+                if (userId != null) {
+                    val recordMap = hashMapOf(
+                        "steps" to record.steps,
+                        "timestamp" to record.dateTimeMillis,
+                        "notes" to record.notes
+                    )
+                    db.collection("users")
+                        .document(userId)
+                        .collection("step_records")
+                        .add(recordMap)
+                        .addOnSuccessListener {
+                            android.util.Log.d("FirebaseSync", "Step record sync successful in Firestore!")
+                        }
+                        .addOnFailureListener { e ->
+                            android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
+                        }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("FirebaseSync", "Firebase Firestore sync bypassed: ${e.message}")
+            }
+
+            resetStepForm()
+        }
+    }
+
+    fun deleteStepRecord(record: StepCountRecord) {
+        viewModelScope.launch {
+            repository.deleteStepRecord(record)
+        }
+    }
+
+    fun prepareEditStep(record: StepCountRecord) {
+        selectedStepIdToEdit = record.id
+        stepsCount = record.steps.toString()
+        stepsDate = formatEpochToDateOnly(record.dateTimeMillis)
+        stepsTime = formatEpochToTimeOnly(record.dateTimeMillis)
+        stepsNotes = record.notes
+    }
+
+    fun resetStepForm() {
+        selectedStepIdToEdit = null
+        stepsCount = ""
+        stepsDate = formatEpochToDateOnly(getCurrentTimeMillis())
+        stepsTime = formatEpochToTimeOnly(getCurrentTimeMillis())
+        stepsNotes = ""
     }
 
     // Business Logic Actions (Reminders)
@@ -2407,6 +2509,18 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 root.put("profiles", profileArr)
 
+                // 7. Step Count Records
+                val stepsList = repository.allStepRecords.first()
+                val stepsArr = JSONArray()
+                for (item in stepsList) {
+                    val obj = JSONObject()
+                    obj.put("steps", item.steps)
+                    obj.put("dateTimeMillis", item.dateTimeMillis)
+                    obj.put("notes", item.notes)
+                    stepsArr.put(obj)
+                }
+                root.put("steps", stepsArr)
+
                 onComplete(root.toString(2))
             } catch (e: java.lang.Exception) {
                 onComplete(null)
@@ -2426,6 +2540,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 repository.clearAllRefillLogs()
                 repository.clearAllReminders()
                 repository.clearAllProfiles()
+                repository.clearAllStepRecords()
 
                 // 1. Profiles
                 val profilesArr = root.optJSONArray("profiles")
@@ -2533,6 +2648,22 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                                 minute = obj.optInt("minute", 0),
                                 isEnabled = obj.optBoolean("isEnabled", true),
                                 daysOfWeek = obj.optString("daysOfWeek", "Daily")
+                            )
+                        )
+                    }
+                }
+
+                // 7. Step Count Records
+                val stepsArr = root.optJSONArray("steps")
+                if (stepsArr != null) {
+                    for (i in 0 until stepsArr.length()) {
+                        val obj = stepsArr.getJSONObject(i)
+                        repository.insertStepRecord(
+                            com.example.data.model.StepCountRecord(
+                                id = 0,
+                                steps = obj.optInt("steps", 0),
+                                dateTimeMillis = obj.optLong("dateTimeMillis", System.currentTimeMillis()),
+                                notes = obj.optString("notes", "")
                             )
                         )
                     }
