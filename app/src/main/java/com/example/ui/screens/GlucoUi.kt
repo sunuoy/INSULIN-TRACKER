@@ -4272,8 +4272,12 @@ fun ReminderCard(
     onDelete: () -> Unit,
     viewModel: GlucoViewModel
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (target.isEnabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -4375,10 +4379,10 @@ fun ReminderCard(
                         }
                     }
 
-                    // Right side: Time display and Switch toggle
+                    // Right side: Time display, Switch toggle, and Expand Indicator
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
                             text = viewModel.formatHourMinute(target.hour, target.minute),
@@ -4394,24 +4398,34 @@ fun ReminderCard(
                                 checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
                             )
                         )
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Expand controls",
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
 
-                // Bottom section: Divider & Control buttons (Edit & Delete)
-                Spacer(modifier = Modifier.height(10.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit reminder", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete reminder", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                // Bottom section: Divider & Control buttons (Edit & Delete) - expandable
+                androidx.compose.animation.AnimatedVisibility(visible = isExpanded) {
+                    Column {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit reminder", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete reminder", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                            }
+                        }
                     }
                 }
             }
