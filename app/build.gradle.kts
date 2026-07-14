@@ -8,6 +8,10 @@ plugins {
 
 }
 
+val gitCommits: Int = providers.exec {
+    commandLine("git", "rev-list", "--count", "HEAD")
+}.standardOutput.asText.map { it.trim().toIntOrNull() ?: 1 }.getOrElse(1)
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -16,8 +20,8 @@ android {
     applicationId = "com.glucolog.sunuoy"
     minSdk = 24
     targetSdk = 36
-    versionCode = 10
-    versionName = "1.2.0"
+    versionCode = gitCommits
+    versionName = "1.2.${gitCommits - 43}"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

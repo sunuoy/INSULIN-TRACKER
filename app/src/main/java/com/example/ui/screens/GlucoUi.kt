@@ -7572,6 +7572,16 @@ fun StepsScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
 
+                        val heightM = currentProfile.heightCm / 100.0
+                        val bmi = if (heightM > 0) currentProfile.weightKg / (heightM * heightM) else 0.0
+                        val (bmiCategory, bmiColor) = when {
+                            bmi <= 0.0 -> "N/A" to Color.Gray
+                            bmi < 18.5 -> "Underweight" to Color(0xFFFBC02D)
+                            bmi < 25.0 -> "Normal" to Color(0xFF4CAF50)
+                            bmi < 30.0 -> "Overweight" to Color(0xFFF57C00)
+                            else -> "Obese" to Color(0xFFD32F2F)
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -7587,14 +7597,39 @@ fun StepsScreen(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier.size(130.dp)
                                 ) {
+                                    // Outer decorative dashed halo circle
+                                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                                        drawCircle(
+                                            color = bmiColor.copy(alpha = 0.15f),
+                                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                                width = 1.dp.toPx(),
+                                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f)
+                                            )
+                                        )
+                                    }
+
+                                    // Main dynamic circular indicator with rounded endpoints
                                     CircularProgressIndicator(
-                                        progress = progress,
-                                        strokeWidth = 9.dp,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                        progress = progress.coerceIn(0f, 1f),
+                                        strokeWidth = 10.dp,
+                                        color = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                                         modifier = Modifier.fillMaxSize()
                                     )
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                                    // Metric stack in the center
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DirectionsWalk,
+                                            contentDescription = "Walk",
+                                            tint = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = String.format("%,d", todaySteps),
                                             style = MaterialTheme.typography.titleLarge,
@@ -7602,9 +7637,10 @@ fun StepsScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "Goal: $stepGoal",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
+                                            text = "${(progress * 100).toInt()}%",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
                                         )
                                     }
                                 }
@@ -7625,16 +7661,6 @@ fun StepsScreen(
                                 modifier = Modifier.weight(1.0f),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                val heightM = currentProfile.heightCm / 100.0
-                                val bmi = if (heightM > 0) currentProfile.weightKg / (heightM * heightM) else 0.0
-                                val (bmiCategory, bmiColor) = when {
-                                    bmi <= 0.0 -> "N/A" to Color.Gray
-                                    bmi < 18.5 -> "Underweight" to Color(0xFFFBC02D)
-                                    bmi < 25.0 -> "Normal" to Color(0xFF4CAF50)
-                                    bmi < 30.0 -> "Overweight" to Color(0xFFF57C00)
-                                    else -> "Obese" to Color(0xFFD32F2F)
-                                }
-
                                 // Height & Weight side by side in a Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
