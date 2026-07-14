@@ -898,7 +898,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         _updateCheckStatus.value = "Checking..."
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val url = java.net.URL("https://api.github.com/repos/sunuoy/INULIEN-TRACKER/releases/latest")
+                val url = java.net.URL("https://api.github.com/repos/sunuoy/INSULIN-TRACKER/releases/latest")
                 val connection = url.openConnection() as java.net.HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")

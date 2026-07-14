@@ -55,7 +55,7 @@
 ### Steps
 1. Clone the repository:
    ```bash
-   git clone https://github.com/sunuoy/INULIEN-TRACKER.git
+   git clone https://github.com/sunuoy/INSULIN-TRACKER.git
    ```
 2. Open the project in Android Studio and perform a Gradle Sync.
 3. Place your valid `google-services.json` in the `app/` directory (configured for `com.glucolog.sunuoy`).
