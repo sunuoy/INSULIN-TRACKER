@@ -1734,15 +1734,15 @@ fun HomeScreen(
                                 Color(0xFF06B6D4)  // Cyan
                             )
                         ),
-                        shape = RoundedCornerShape(20.dp)
+                        shape = RoundedCornerShape(18.dp)
                     ),
                 colors = CardDefaults.cardColors(
                     containerColor = Color.Transparent,
                     contentColor = Color.White
                 ),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(18.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1845,13 +1845,13 @@ fun HomeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 // Log Insulin Button Card
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(80.dp)
+                        .height(76.dp)
                         .clickable { onLogInsulinClick() }
                         .testTag("home_add_insulin_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -1885,13 +1885,13 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                .padding(horizontal = 11.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(33.dp)
+                                    .size(31.dp)
                                     .background(Color(0xFF3F51B5), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1900,7 +1900,7 @@ fun HomeScreen(
                                     contentDescription = "Insulin Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(17.dp)
                                         .graphicsLayer {
                                             rotationZ = vaccinesRotation
                                         }
@@ -1918,7 +1918,7 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(80.dp)
+                        .height(76.dp)
                         .clickable { onLogGlucoseClick() }
                         .testTag("home_add_glucose_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
@@ -1952,13 +1952,13 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                .padding(horizontal = 11.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(33.dp)
+                                    .size(31.dp)
                                     .background(Color(0xFFFB8C00), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1967,7 +1967,7 @@ fun HomeScreen(
                                     contentDescription = "Glucose Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(17.dp)
                                         .graphicsLayer {
                                             translationY = waterTranslationY
                                         }
@@ -2009,13 +2009,13 @@ fun HomeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 // Log Blood Pressure Card
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(80.dp)
+                        .height(76.dp)
                         .clickable { onLogBloodPressureClick() }
                         .testTag("home_add_bp_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
@@ -2049,13 +2049,13 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                .padding(horizontal = 11.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(33.dp)
+                                    .size(31.dp)
                                     .background(Color(0xFFE53935), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2064,7 +2064,7 @@ fun HomeScreen(
                                     contentDescription = "Blood Pressure Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(17.dp)
                                         .graphicsLayer {
                                             scaleX = heartScale
                                             scaleY = heartScale
@@ -2083,7 +2083,7 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(80.dp)
+                        .height(76.dp)
                         .clickable { onRefillClick() }
                         .testTag("home_add_refill_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
@@ -2117,13 +2117,13 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                .padding(horizontal = 11.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(33.dp)
+                                    .size(31.dp)
                                     .background(Color(0xFF00ACC1), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2132,7 +2132,7 @@ fun HomeScreen(
                                     contentDescription = "Refill Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(17.dp)
                                         .graphicsLayer {
                                             rotationZ = refreshRotation
                                         }
@@ -2155,49 +2155,92 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth().testTag("low_cartridge_alert_card"),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White
                     ),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFEF4444).copy(alpha = 0.4f))
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF991B1B), // Crimson Red
+                                        Color(0xFF450A0A)  // Deep Burgundy
+                                    )
+                                )
+                            )
                     ) {
-                        AnimatedLowInsulinGraphic()
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "CRITICAL REMINDER",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
+                        // Custom background warning graphic (abstract warning wave curves)
+                        androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                            val path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(0f, size.height * 0.75f)
+                                cubicTo(
+                                    size.width * 0.35f, size.height * 0.6f,
+                                    size.width * 0.65f, size.height * 0.9f,
+                                    size.width, size.height * 0.5f
+                                )
+                                lineTo(size.width, size.height)
+                                lineTo(0f, size.height)
+                                close()
+                            }
+                            drawPath(
+                                path = path,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color(0xFFEF4444).copy(alpha = 0.12f)
+                                    )
+                                )
                             )
-                            Text(
-                                "Insulin Cartridge Low!",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                            // Draw decorative glowing circles on the right side
+                            drawCircle(
+                                color = Color.White.copy(alpha = 0.04f),
+                                radius = size.height * 0.6f,
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.3f)
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                "Remaining level is ${profile.cartridgeRemaining.toInt()} Units (less than 25U threshold). Refill or change now to continue logged dosage safely.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Button(
-                                onClick = { onRefillClick() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error,
-                                    contentColor = MaterialTheme.colorScheme.onError
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                                modifier = Modifier.height(36.dp)
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Refill icon", modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Change & Refill Cartridge", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            AnimatedLowInsulinGraphic()
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "CRITICAL REMINDER",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFCA5A5)
+                                )
+                                Text(
+                                    "Insulin Cartridge Low!",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    "Remaining level is ${profile.cartridgeRemaining.toInt()} Units (less than 25U threshold). Refill or change now to continue logged dosage safely.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = { onRefillClick() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color(0xFF991B1B)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "Refill icon", modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Change & Refill Cartridge", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -7979,7 +8022,7 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
 
     androidx.compose.foundation.Canvas(
         modifier = modifier
-            .size(44.dp)
+            .size(42.dp)
             .graphicsLayer {
                 this.translationY = translationY
             }
@@ -7992,8 +8035,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
             radius = width / 2f
         )
         
-        val cartridgeWidth = 13.dp.toPx()
-        val cartridgeHeight = 30.dp.toPx()
+        val cartridgeWidth = 12.3.dp.toPx()
+        val cartridgeHeight = 28.5.dp.toPx()
         val left = (width - cartridgeWidth) / 2f
         val top = (height - cartridgeHeight) / 2f
         
@@ -8023,8 +8066,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
             )
         }
         
-        val tipWidth = 3.6.dp.toPx()
-        val tipHeight = 3.6.dp.toPx()
+        val tipWidth = 3.4.dp.toPx()
+        val tipHeight = 3.4.dp.toPx()
         drawRect(
             color = Color.White.copy(alpha = 0.7f),
             topLeft = androidx.compose.ui.geometry.Offset((width - tipWidth) / 2f, top - tipHeight),
@@ -8032,8 +8075,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
         )
         
         val excX = width / 2f
-        val excYStart = top + 5.5.dp.toPx()
-        val excYEnd = top + 13.dp.toPx()
+        val excYStart = top + 5.2.dp.toPx()
+        val excYEnd = top + 12.3.dp.toPx()
         
         drawLine(
             color = Color.Red,
@@ -8043,7 +8086,7 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
         )
         drawCircle(
             color = Color.Red,
-            radius = 1.15.dp.toPx(),
+            radius = 1.1.dp.toPx(),
             center = androidx.compose.ui.geometry.Offset(excX, excYEnd)
         )
     }
