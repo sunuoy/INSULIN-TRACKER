@@ -341,85 +341,82 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                     if (userId == null) {
                         userId = "guest_patient"
                     }
-                    if (userId != null) {
-                        _syncConsoleLog.value += "\n\n>>> SYNCING WITH CLOUD FIRESTORE FOR SECURE COLD RECOVERY ($userId)...\n"
-                        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        
-                        // User Profile
-                        val activeProfile = userProfile.value
-                        val profileMap = hashMapOf(
-                            "userName" to activeProfile.userName,
-                            "doctorName" to activeProfile.doctorName,
-                            "doctorEmail" to activeProfile.doctorEmail,
-                            "doctorPhone" to activeProfile.doctorPhone,
-                            "targetGlucoseMin" to activeProfile.targetGlucoseMin,
-                            "targetGlucoseMax" to activeProfile.targetGlucoseMax,
-                            "glucoseUnit" to activeProfile.glucoseUnit,
-                            "cartridgeCapacity" to activeProfile.cartridgeCapacity,
-                            "cartridgeRemaining" to activeProfile.cartridgeRemaining
+                    val finalUserId = userId!!
+                    _syncConsoleLog.value += "\n\n>>> SYNCING WITH CLOUD FIRESTORE FOR SECURE COLD RECOVERY ($finalUserId)...\n"
+                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    
+                    // User Profile
+                    val activeProfile = userProfile.value
+                    val profileMap = hashMapOf(
+                        "userName" to activeProfile.userName,
+                        "doctorName" to activeProfile.doctorName,
+                        "doctorEmail" to activeProfile.doctorEmail,
+                        "doctorPhone" to activeProfile.doctorPhone,
+                        "targetGlucoseMin" to activeProfile.targetGlucoseMin,
+                        "targetGlucoseMax" to activeProfile.targetGlucoseMax,
+                        "glucoseUnit" to activeProfile.glucoseUnit,
+                        "cartridgeCapacity" to activeProfile.cartridgeCapacity,
+                        "cartridgeRemaining" to activeProfile.cartridgeRemaining
+                    )
+                    db.collection("users").document(finalUserId).set(profileMap)
+                    _syncConsoleLog.value += "✓ Clinical active profile configuration synced\n"
+
+                    // Glucose Readings
+                    val glucoseColl = db.collection("users").document(finalUserId).collection("glucose_readings")
+                    glucoseReadings.value.forEach { reading ->
+                        val record = hashMapOf(
+                            "readingValue" to reading.readingValue,
+                            "mealContext" to reading.mealContext,
+                            "timestamp" to reading.dateTimeMillis,
+                            "notes" to reading.notes
                         )
-                        db.collection("users").document(userId).set(profileMap)
-                        _syncConsoleLog.value += "✓ Clinical active profile configuration synced\n"
-
-                        // Glucose Readings
-                        val glucoseColl = db.collection("users").document(userId).collection("glucose_readings")
-                        glucoseReadings.value.forEach { reading ->
-                            val record = hashMapOf(
-                                "readingValue" to reading.readingValue,
-                                "mealContext" to reading.mealContext,
-                                "timestamp" to reading.dateTimeMillis,
-                                "notes" to reading.notes
-                            )
-                            glucoseColl.document(reading.id.toString()).set(record)
-                        }
-                        _syncConsoleLog.value += "✓ ${glucoseReadings.value.size} Glucose readings synchronized to secure cloud\n"
-
-                        // Insulin Records
-                        val insulinColl = db.collection("users").document(userId).collection("insulin_records")
-                        insulinRecords.value.forEach { record ->
-                            val map = hashMapOf(
-                                "insulinType" to record.insulinType,
-                                "doseUnits" to record.doseUnits,
-                                "timestamp" to record.dateTimeMillis,
-                                "notes" to record.notes
-                            )
-                            insulinColl.document(record.id.toString()).set(map)
-                        }
-                        _syncConsoleLog.value += "✓ ${insulinRecords.value.size} Insulin delivery logs synchronized to secure cloud\n"
-
-                        // Blood Pressure Records
-                        val bpColl = db.collection("users").document(userId).collection("blood_pressure_records")
-                        bloodPressureRecords.value.forEach { record ->
-                            val map = hashMapOf(
-                                "systolic" to record.systolic,
-                                "diastolic" to record.diastolic,
-                                "pulse" to record.pulse,
-                                "timestamp" to record.dateTimeMillis,
-                                "notes" to record.notes
-                            )
-                            bpColl.document(record.id.toString()).set(map)
-                        }
-                        _syncConsoleLog.value += "✓ ${bloodPressureRecords.value.size} Blood pressure cards synchronized to secure cloud\n"
-
-                        // Reminders
-                        val remColl = db.collection("users").document(userId).collection("reminders")
-                        reminders.value.forEach { rem ->
-                            val map = hashMapOf(
-                                "reminderType" to rem.reminderType,
-                                "label" to rem.label,
-                                "hour" to rem.hour,
-                                "minute" to rem.minute,
-                                "isEnabled" to rem.isEnabled,
-                                "daysOfWeek" to rem.daysOfWeek,
-                                "tone" to rem.tone
-                            )
-                            remColl.document(rem.id.toString()).set(map)
-                        }
-                        _syncConsoleLog.value += "✓ ${reminders.value.size} Reminders synchronized to secure cloud\n"
-                        _syncConsoleLog.value += ">>> CLOUD FIRESTORE CLINICAL DATA SYNC COMPLETED SUCCESSFULLY.\n"
-                    } else {
-                        _syncConsoleLog.value += "\n\n>>> CLOUD FIRESTORE SYNC BYPASSED: No authenticated Firebase Auth session found on this instance.\n"
+                        glucoseColl.document(reading.id.toString()).set(record)
                     }
+                    _syncConsoleLog.value += "✓ ${glucoseReadings.value.size} Glucose readings synchronized to secure cloud\n"
+
+                    // Insulin Records
+                    val insulinColl = db.collection("users").document(finalUserId).collection("insulin_records")
+                    insulinRecords.value.forEach { record ->
+                        val map = hashMapOf(
+                            "insulinType" to record.insulinType,
+                            "doseUnits" to record.doseUnits,
+                            "timestamp" to record.dateTimeMillis,
+                            "notes" to record.notes
+                        )
+                        insulinColl.document(record.id.toString()).set(map)
+                    }
+                    _syncConsoleLog.value += "✓ ${insulinRecords.value.size} Insulin delivery logs synchronized to secure cloud\n"
+
+                    // Blood Pressure Records
+                    val bpColl = db.collection("users").document(finalUserId).collection("blood_pressure_records")
+                    bloodPressureRecords.value.forEach { record ->
+                        val map = hashMapOf(
+                            "systolic" to record.systolic,
+                            "diastolic" to record.diastolic,
+                            "pulse" to record.pulse,
+                            "timestamp" to record.dateTimeMillis,
+                            "notes" to record.notes
+                        )
+                        bpColl.document(record.id.toString()).set(map)
+                    }
+                    _syncConsoleLog.value += "✓ ${bloodPressureRecords.value.size} Blood pressure cards synchronized to secure cloud\n"
+
+                    // Reminders
+                    val remColl = db.collection("users").document(finalUserId).collection("reminders")
+                    reminders.value.forEach { rem ->
+                        val map = hashMapOf(
+                            "reminderType" to rem.reminderType,
+                            "label" to rem.label,
+                            "hour" to rem.hour,
+                            "minute" to rem.minute,
+                            "isEnabled" to rem.isEnabled,
+                            "daysOfWeek" to rem.daysOfWeek,
+                            "tone" to rem.tone
+                        )
+                        remColl.document(rem.id.toString()).set(map)
+                    }
+                    _syncConsoleLog.value += "✓ ${reminders.value.size} Reminders synchronized to secure cloud\n"
+                    _syncConsoleLog.value += ">>> CLOUD FIRESTORE CLINICAL DATA SYNC COMPLETED SUCCESSFULLY.\n"
                 } catch (fe: Exception) {
                     _syncConsoleLog.value += "\n\n!!! CLOUD FIRESTORE SYNC ERROR: ${fe.localizedMessage}\n"
                 }
@@ -933,7 +930,10 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                             val asset = assets.getJSONObject(i)
                             val name = asset.optString("name", "")
                             if (name.endsWith(".apk")) {
-                                apkUrl = asset.optString("browser_download_url", null)
+                                val rawUrl = asset.optString("browser_download_url", "")
+                                if (rawUrl.isNotEmpty()) {
+                                    apkUrl = rawUrl
+                                }
                                 break
                             }
                         }
@@ -1439,24 +1439,22 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 val userId = auth.currentUser?.uid ?: (if (_loggedInUser.value.isNotEmpty()) "user_" + _loggedInUser.value.lowercase().replace(" ", "_") else "guest_patient")
-                if (userId != null) {
-                    val recordMap = hashMapOf(
-                        "insulinType" to record.insulinType,
-                        "doseUnits" to record.doseUnits,
-                        "timestamp" to record.dateTimeMillis,
-                        "notes" to record.notes
-                    )
-                    db.collection("users")
-                        .document(userId)
-                        .collection("insulin_records")
-                        .add(recordMap)
-                        .addOnSuccessListener {
-                            android.util.Log.d("FirebaseSync", "Insulin record sync successful in Firestore!")
-                        }
-                        .addOnFailureListener { e ->
-                            android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
-                        }
-                }
+                val recordMap = hashMapOf(
+                    "insulinType" to record.insulinType,
+                    "doseUnits" to record.doseUnits,
+                    "timestamp" to record.dateTimeMillis,
+                    "notes" to record.notes
+                )
+                db.collection("users")
+                    .document(userId)
+                    .collection("insulin_records")
+                    .add(recordMap)
+                    .addOnSuccessListener {
+                        android.util.Log.d("FirebaseSync", "Insulin record sync successful in Firestore!")
+                    }
+                    .addOnFailureListener { e ->
+                        android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
+                    }
             } catch (e: Exception) {
                 android.util.Log.e("FirebaseSync", "Firebase Firestore sync bypassed: ${e.message}")
             }
@@ -1520,24 +1518,22 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 val userId = auth.currentUser?.uid ?: (if (_loggedInUser.value.isNotEmpty()) "user_" + _loggedInUser.value.lowercase().replace(" ", "_") else "guest_patient")
-                if (userId != null) {
-                    val glucoseRecord = hashMapOf(
-                        "readingValue" to reading.readingValue,
-                        "mealContext" to reading.mealContext,
-                        "timestamp" to reading.dateTimeMillis,
-                        "notes" to reading.notes
-                    )
-                    db.collection("users")
-                        .document(userId)
-                        .collection("glucose_readings")
-                        .add(glucoseRecord)
-                        .addOnSuccessListener {
-                            android.util.Log.d("FirebaseSync", "Glucose reading sync successful in Firestore!")
-                        }
-                        .addOnFailureListener { e ->
-                            android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
-                        }
-                }
+                val glucoseRecord = hashMapOf(
+                    "readingValue" to reading.readingValue,
+                    "mealContext" to reading.mealContext,
+                    "timestamp" to reading.dateTimeMillis,
+                    "notes" to reading.notes
+                )
+                db.collection("users")
+                    .document(userId)
+                    .collection("glucose_readings")
+                    .add(glucoseRecord)
+                    .addOnSuccessListener {
+                        android.util.Log.d("FirebaseSync", "Glucose reading sync successful in Firestore!")
+                    }
+                    .addOnFailureListener { e ->
+                        android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
+                    }
             } catch (e: Exception) {
                 android.util.Log.e("FirebaseSync", "Firebase Firestore sync bypassed: ${e.message}")
             }
@@ -1605,25 +1601,23 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 val userId = auth.currentUser?.uid ?: (if (_loggedInUser.value.isNotEmpty()) "user_" + _loggedInUser.value.lowercase().replace(" ", "_") else "guest_patient")
-                if (userId != null) {
-                    val recordMap = hashMapOf(
-                        "systolic" to record.systolic,
-                        "diastolic" to record.diastolic,
-                        "pulse" to record.pulse,
-                        "timestamp" to record.dateTimeMillis,
-                        "notes" to record.notes
-                    )
-                    db.collection("users")
-                        .document(userId)
-                        .collection("blood_pressure_records")
-                        .add(recordMap)
-                        .addOnSuccessListener {
-                            android.util.Log.d("FirebaseSync", "Blood pressure record sync successful in Firestore!")
-                        }
-                        .addOnFailureListener { e ->
-                            android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
-                        }
-                }
+                val recordMap = hashMapOf(
+                    "systolic" to record.systolic,
+                    "diastolic" to record.diastolic,
+                    "pulse" to record.pulse,
+                    "timestamp" to record.dateTimeMillis,
+                    "notes" to record.notes
+                )
+                db.collection("users")
+                    .document(userId)
+                    .collection("blood_pressure_records")
+                    .add(recordMap)
+                    .addOnSuccessListener {
+                        android.util.Log.d("FirebaseSync", "Blood pressure record sync successful in Firestore!")
+                    }
+                    .addOnFailureListener { e ->
+                        android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
+                    }
             } catch (e: Exception) {
                 android.util.Log.e("FirebaseSync", "Firebase Firestore sync bypassed: ${e.message}")
             }
@@ -1687,23 +1681,21 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 val userId = auth.currentUser?.uid ?: (if (_loggedInUser.value.isNotEmpty()) "user_" + _loggedInUser.value.lowercase().replace(" ", "_") else "guest_patient")
-                if (userId != null) {
-                    val recordMap = hashMapOf(
-                        "steps" to record.steps,
-                        "timestamp" to record.dateTimeMillis,
-                        "notes" to record.notes
-                    )
-                    db.collection("users")
-                        .document(userId)
-                        .collection("step_records")
-                        .add(recordMap)
-                        .addOnSuccessListener {
-                            android.util.Log.d("FirebaseSync", "Step record sync successful in Firestore!")
-                        }
-                        .addOnFailureListener { e ->
-                            android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
-                        }
-                }
+                val recordMap = hashMapOf(
+                    "steps" to record.steps,
+                    "timestamp" to record.dateTimeMillis,
+                    "notes" to record.notes
+                )
+                db.collection("users")
+                    .document(userId)
+                    .collection("step_records")
+                    .add(recordMap)
+                    .addOnSuccessListener {
+                        android.util.Log.d("FirebaseSync", "Step record sync successful in Firestore!")
+                    }
+                    .addOnFailureListener { e ->
+                        android.util.Log.e("FirebaseSync", "Firestore sync exception:", e)
+                    }
             } catch (e: Exception) {
                 android.util.Log.e("FirebaseSync", "Firebase Firestore sync bypassed: ${e.message}")
             }

@@ -52,7 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "glucolog_database"
                 )
-                .fallbackToDestructiveMigration() // ensures safety during dev schema modifications
+                .fallbackToDestructiveMigration(true) // ensures safety during dev schema modifications
                 .build()
                 INSTANCE = instance
                 instance
