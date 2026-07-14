@@ -278,6 +278,7 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     ) {
         val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 val isSettings = currentScreen == AppScreen.SETTINGS
                 TopAppBar(
@@ -4160,6 +4161,7 @@ fun RemindersScreen(
     val remindersList by viewModel.reminders.collectAsStateWithLifecycle()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
@@ -4527,7 +4529,7 @@ fun ReminderCard(
                                 val isActive = parsedDays.any { it.startsWith(dayName, ignoreCase = true) }
                                 Box(
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(20.dp)
                                         .background(
                                             if (isActive && target.isEnabled) {
                                                 if (target.reminderType == "Insulin") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
@@ -4540,8 +4542,14 @@ fun ReminderCard(
                                 ) {
                                     Text(
                                         text = letter,
-                                        fontSize = 8.sp,
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        style = androidx.compose.ui.text.TextStyle(
+                                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                                includeFontPadding = false
+                                            )
+                                        ),
                                         color = if (isActive && target.isEnabled) {
                                             if (target.reminderType == "Insulin") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onTertiary
                                         } else {
@@ -9003,6 +9011,7 @@ fun StepsScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
