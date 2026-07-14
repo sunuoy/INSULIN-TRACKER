@@ -790,11 +790,13 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 .putBoolean("remember_me_checked", true)
                 .putString("remember_me_username", username)
                 .putString("remember_me_password", "google_verified_auth")
+                .putBoolean("gd_sync_enabled", true) // Auto-enable Google Drive sync for Google sign-in
                 .apply()
                 
             _rememberMe.value = true
             _savedUsernameOrEmail.value = username
             _savedPassword.value = "google_verified_auth"
+            _googleDriveSyncEnabled.value = true
                 
             // 2. Clear state and log in as standard patient
             _isAdmin.value = false
@@ -843,6 +845,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 android.util.Log.e("FirebaseAuth", "Firebase Auth initialization error: ${e.message}")
                 syncAllDataToFirebase()
             }
+
+            fetchGoogleDriveTokenAutomatically(getApplication(), email)
         }
     }
 
@@ -3036,6 +3040,14 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                         withContext(Dispatchers.Main) {
                             setGoogleDriveAccessToken(token)
                             android.util.Log.d("GoogleDriveAutoSync", "Successfully auto-authenticated Google Drive for $email")
+                            
+                            // Auto restore if database has been cleared/wiped on updated version installation
+                            if (glucoseReadings.value.isEmpty() && insulinRecords.value.isEmpty()) {
+                                android.util.Log.d("GoogleDriveAutoSync", "Local records empty. Triggering automatic cloud restore...")
+                                restoreFromGoogleDrive { success, msg ->
+                                    android.util.Log.d("GoogleDriveAutoSync", "Auto-restore completed: success=$success, msg=$msg")
+                                }
+                            }
                         }
                     }
                 }

@@ -47,7 +47,7 @@ interface GlucoseDao {
 
 @Dao
 interface ReminderDao {
-    @Query("SELECT * FROM reminders ORDER BY reminderType, hour, minute ASC")
+    @Query("SELECT * FROM reminders ORDER BY hour, minute ASC")
     fun getAllReminders(): Flow<List<Reminder>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

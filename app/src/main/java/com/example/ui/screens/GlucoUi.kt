@@ -4387,6 +4387,113 @@ fun ReportsScreen(viewModel: GlucoViewModel) {
             }
         }
 
+        // 3D Time-In-Range Columns Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("tir_3d_chart_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiaryContainer)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("3D Time-In-Range Analysis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Volumetric view of glycemic status distributions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                    ) {
+                        val canvasWidth = size.width
+                        val canvasHeight = size.height
+
+                        // Calculate percentages
+                        val rawTotal = summary.percentLow + summary.percentInRange + summary.percentHigh
+                        val pctLow = (if (rawTotal > 0) summary.percentLow / 100.0 else 0.05).toFloat()
+                        val pctIn = (if (rawTotal > 0) summary.percentInRange / 100.0 else 0.90).toFloat()
+                        val pctHigh = (if (rawTotal > 0) summary.percentHigh / 100.0 else 0.05).toFloat()
+
+                        // Draw grid lines
+                        val gridLines = 4
+                        for (i in 0..gridLines) {
+                            val y = canvasHeight * 0.15f + (canvasHeight * 0.7f) * (i.toFloat() / gridLines)
+                            drawLine(
+                                color = Color.Gray.copy(alpha = 0.15f),
+                                start = Offset(0f, y),
+                                end = Offset(canvasWidth, y),
+                                strokeWidth = 1f
+                            )
+                        }
+
+                        // Column configurations
+                        val colWidth = 60f
+                        val gap = (canvasWidth - (colWidth * 3)) / 4f
+                        val dx = 15f
+                        val dy = 10f
+                        val maxColHeight = canvasHeight * 0.65f
+                        val baseLineY = canvasHeight * 0.85f
+
+                        // Data list
+                        val columns = listOf(
+                            Triple(pctLow, "Low", listOf(Color(0xFF2196F3), Color(0xFF1976D2), Color(0xFF64B5F6))),
+                            Triple(pctIn, "In-Range", listOf(Color(0xFF4CAF50), Color(0xFF388E3C), Color(0xFF81C784))),
+                            Triple(pctHigh, "High", listOf(Color(0xFFE91E63), Color(0xFFC2185B), Color(0xFFF06292)))
+                        )
+
+                        columns.forEachIndexed { index, (fraction, label, colors) ->
+                            val x = gap + index * (colWidth + gap)
+                            // Minimum height of 12px so a tiny value is still visible in 3D
+                            val h = (fraction * maxColHeight).coerceAtLeast(12f)
+                            val y = baseLineY
+
+                            val frontColor = colors[0]
+                            val sideColor = colors[1]
+                            val topColor = colors[2]
+
+                            // 1. Front face
+                            drawRect(
+                                color = frontColor,
+                                topLeft = Offset(x, y - h),
+                                size = Size(colWidth, h)
+                            )
+
+                            // 2. Right side face
+                            val sidePath = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(x + colWidth, y)
+                                lineTo(x + colWidth + dx, y - dy)
+                                lineTo(x + colWidth + dx, y - h - dy)
+                                lineTo(x + colWidth, y - h)
+                                close()
+                            }
+                            drawPath(path = sidePath, color = sideColor)
+
+                            // 3. Top face
+                            val topPath = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(x, y - h)
+                                lineTo(x + dx, y - h - dy)
+                                lineTo(x + colWidth + dx, y - h - dy)
+                                lineTo(x + colWidth, y - h)
+                                close()
+                            }
+                            drawPath(path = topPath, color = topColor)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        TirLegendItem(color = Color(0xFF2196F3), label = "Low", value = "${summary.percentLow.toInt()}%")
+                        TirLegendItem(color = Color(0xFF4CAF50), label = "In-Range", value = "${summary.percentInRange.toInt()}%")
+                        TirLegendItem(color = Color(0xFFE91E63), label = "High", value = "${summary.percentHigh.toInt()}%")
+                    }
+                }
+            }
+        }
+
         // Blood Glucose Trend Line Chart (Bezier Trend Line)
         item {
             Card(
@@ -6727,6 +6834,50 @@ fun BloodPressureFormDialog(
     }
 }
 
+private fun playAdorableTone(toneName: String) {
+    Thread {
+        try {
+            val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 85)
+            when (toneName) {
+                "Default" -> {
+                    tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP)
+                }
+                "Gentle Chime" -> {
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_3, 80)
+                    Thread.sleep(100)
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_6, 80)
+                    Thread.sleep(100)
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_9, 120)
+                }
+                "Digital Alarm" -> {
+                    tg.startTone(android.media.ToneGenerator.TONE_SUP_DIAL, 100)
+                    Thread.sleep(180)
+                    tg.startTone(android.media.ToneGenerator.TONE_SUP_DIAL, 100)
+                }
+                "Medical Alert" -> {
+                    tg.startTone(android.media.ToneGenerator.TONE_CDMA_PIP, 60)
+                    Thread.sleep(100)
+                    tg.startTone(android.media.ToneGenerator.TONE_CDMA_PIP, 60)
+                    Thread.sleep(100)
+                    tg.startTone(android.media.ToneGenerator.TONE_CDMA_PIP, 80)
+                }
+                "Zen Harp" -> {
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_1, 60)
+                    Thread.sleep(80)
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_5, 60)
+                    Thread.sleep(80)
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_9, 60)
+                    Thread.sleep(80)
+                    tg.startTone(android.media.ToneGenerator.TONE_DTMF_A, 120)
+                }
+            }
+            tg.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }.start()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderFormDialog(
@@ -6850,7 +7001,10 @@ fun ReminderFormDialog(
                     toneOptions.forEach { t ->
                         val active = tone == t
                         Button(
-                            onClick = { tone = t },
+                            onClick = {
+                                tone = t
+                                playAdorableTone(t)
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
