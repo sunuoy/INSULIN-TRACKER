@@ -8275,500 +8275,632 @@ fun StepsScreen(
                 }
             }
 
-            // Circular Progress Card
+            // Circular Progress Card — Premium Gradient with Canvas Graphics
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF1E3A5F), // Deep Navy
+                                        Color(0xFF0D2137)  // Midnight Blue
+                                    )
+                                ),
+                                shape = RoundedCornerShape(20.dp)
+                            )
                     ) {
-                        Text(
-                            text = "Today's Progress",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        val heightM = currentProfile.heightCm / 100.0
-                        val bmi = if (heightM > 0) currentProfile.weightKg / (heightM * heightM) else 0.0
-                        val (bmiCategory, bmiColor) = when {
-                            bmi <= 0.0 -> "N/A" to Color.Gray
-                            bmi < 18.5 -> "Underweight" to Color(0xFFFBC02D)
-                            bmi < 25.0 -> "Normal" to Color(0xFF4CAF50)
-                            bmi < 30.0 -> "Overweight" to Color(0xFFF57C00)
-                            else -> "Obese" to Color(0xFFD32F2F)
+                        // Background Canvas graphics — wave curves and glowing circles
+                        androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                            // Top-right ambient glow
+                            drawCircle(
+                                color = Color(0xFF4FC3F7).copy(alpha = 0.08f),
+                                radius = size.height * 0.5f,
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.9f, size.height * 0.15f)
+                            )
+                            // Bottom-left subtle glow
+                            drawCircle(
+                                color = Color(0xFF81C784).copy(alpha = 0.06f),
+                                radius = size.height * 0.4f,
+                                center = androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.85f)
+                            )
+                            // Decorative wave
+                            val wavePath = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(0f, size.height * 0.7f)
+                                cubicTo(
+                                    size.width * 0.25f, size.height * 0.55f,
+                                    size.width * 0.75f, size.height * 0.9f,
+                                    size.width, size.height * 0.6f
+                                )
+                                lineTo(size.width, size.height)
+                                lineTo(0f, size.height)
+                                close()
+                            }
+                            drawPath(
+                                path = wavePath,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color(0xFF4FC3F7).copy(alpha = 0.06f)
+                                    )
+                                )
+                            )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
+                        Column(
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            // Left Column: Progress Ring
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.weight(1.1f)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.size(130.dp)
-                                ) {
-                                    // Outer decorative dashed halo circle
-                                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-                                        drawCircle(
-                                            color = bmiColor.copy(alpha = 0.15f),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                                width = 1.dp.toPx(),
-                                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f)
-                                            )
-                                        )
-                                    }
+                            Text(
+                                text = "Today's Progress",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4FC3F7)
+                            )
 
-                                    // Main dynamic circular indicator with rounded endpoints
-                                    CircularProgressIndicator(
-                                        progress = progress.coerceIn(0f, 1f),
-                                        strokeWidth = 10.dp,
-                                        color = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-
-                                    // Metric stack in the center
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DirectionsWalk,
-                                            contentDescription = "Walk",
-                                            tint = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp).then(rememberRunningAnimation(isEnabled = isPermissionGranted))
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = String.format("%,d", todaySteps),
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Black,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = "${(progress * 100).toInt()}%",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    text = if (progress >= 1f) "Goal achieved!" else "${((1f - progress) * stepGoal).toInt()} steps left",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (progress >= 1f) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline,
-                                    textAlign = TextAlign.Center
-                                )
+                            val heightM = currentProfile.heightCm / 100.0
+                            val bmi = if (heightM > 0) currentProfile.weightKg / (heightM * heightM) else 0.0
+                            val (bmiCategory, bmiColor) = when {
+                                bmi <= 0.0 -> "N/A" to Color.Gray
+                                bmi < 18.5 -> "Underweight" to Color(0xFFFBC02D)
+                                bmi < 25.0 -> "Normal" to Color(0xFF4CAF50)
+                                bmi < 30.0 -> "Overweight" to Color(0xFFF57C00)
+                                else -> "Obese" to Color(0xFFD32F2F)
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            // Right Column: Height, Weight, BMI
-                            Column(
-                                modifier = Modifier.weight(1.0f),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
                             ) {
-                                 // Height & Weight side by side in a Row
-                                 Row(
-                                     modifier = Modifier.fillMaxWidth(),
-                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                 ) {
-                                     // Height Display
-                                     Card(
-                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-                                         shape = RoundedCornerShape(14.dp),
-                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                                         modifier = Modifier.weight(1f)
-                                     ) {
-                                         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                                             Row(
-                                                 modifier = Modifier.fillMaxWidth(),
-                                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                                 verticalAlignment = Alignment.CenterVertically
-                                             ) {
-                                                 Text(
-                                                     text = "Height",
-                                                     style = MaterialTheme.typography.labelMedium,
-                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                     fontWeight = FontWeight.Medium
-                                                 )
-                                                 Icon(
-                                                     imageVector = Icons.Default.Straighten,
-                                                     contentDescription = null,
-                                                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                                     modifier = Modifier.size(16.dp)
-                                                 )
-                                             }
-                                             Spacer(modifier = Modifier.height(6.dp))
-                                             Text(
-                                                 text = "${currentProfile.heightCm} cm",
-                                                 style = MaterialTheme.typography.titleMedium,
-                                                 fontWeight = FontWeight.Bold,
-                                                 color = MaterialTheme.colorScheme.onSurface
-                                             )
-                                         }
-                                     }
+                                // Left Column: Progress Ring
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1.1f)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.size(130.dp)
+                                    ) {
+                                        // Outer decorative dashed halo circle
+                                        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                                            drawCircle(
+                                                color = if (progress >= 1f) Color(0xFF4CAF50).copy(alpha = 0.2f) else Color(0xFF4FC3F7).copy(alpha = 0.2f),
+                                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                                    width = 1.dp.toPx(),
+                                                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f)
+                                                )
+                                            )
+                                        }
 
-                                     // Weight Display
-                                     Card(
-                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-                                         shape = RoundedCornerShape(14.dp),
-                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                                         modifier = Modifier.weight(1f)
-                                     ) {
-                                         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                                             Row(
-                                                 modifier = Modifier.fillMaxWidth(),
-                                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                                 verticalAlignment = Alignment.CenterVertically
-                                             ) {
-                                                 Text(
-                                                     text = "Weight",
-                                                     style = MaterialTheme.typography.labelMedium,
-                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                     fontWeight = FontWeight.Medium
-                                                 )
-                                                 Icon(
-                                                     imageVector = Icons.Default.Speed,
-                                                     contentDescription = null,
-                                                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                                     modifier = Modifier.size(16.dp)
-                                                 )
-                                             }
-                                             Spacer(modifier = Modifier.height(6.dp))
-                                             Text(
-                                                 text = "${currentProfile.weightKg} kg",
-                                                 style = MaterialTheme.typography.titleMedium,
-                                                 fontWeight = FontWeight.Bold,
-                                                 color = MaterialTheme.colorScheme.onSurface
-                                             )
-                                         }
-                                     }
-                                 }
+                                        // Main dynamic circular indicator with rounded endpoints
+                                        CircularProgressIndicator(
+                                            progress = progress.coerceIn(0f, 1f),
+                                            strokeWidth = 10.dp,
+                                            color = if (progress >= 1f) Color(0xFF4CAF50) else Color(0xFF4FC3F7),
+                                            trackColor = Color.White.copy(alpha = 0.08f),
+                                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
 
-                                 // BMI Display on the next line
-                                 Card(
-                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
-                                     shape = RoundedCornerShape(16.dp),
-                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                                     modifier = Modifier.fillMaxWidth()
-                                 ) {
-                                     Column(
-                                         modifier = Modifier.fillMaxWidth().padding(14.dp),
-                                         verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        // Metric stack in the center
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DirectionsWalk,
+                                                contentDescription = "Walk",
+                                                tint = if (progress >= 1f) Color(0xFF4CAF50) else Color(0xFF4FC3F7),
+                                                modifier = Modifier.size(24.dp).then(rememberRunningAnimation(isEnabled = isPermissionGranted))
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = String.format("%,d", todaySteps),
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Black,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = "${(progress * 100).toInt()}%",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (progress >= 1f) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = if (progress >= 1f) "Goal achieved!" else "${((1f - progress) * stepGoal).toInt()} steps left",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (progress >= 1f) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.6f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                // Right Column: Height, Weight, BMI
+                                Column(
+                                    modifier = Modifier.weight(1.0f),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                     // Height & Weight side by side in a Row
+                                     Row(
+                                         modifier = Modifier.fillMaxWidth(),
+                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                      ) {
-                                         Row(
-                                             modifier = Modifier.fillMaxWidth(),
-                                             horizontalArrangement = Arrangement.SpaceBetween,
-                                             verticalAlignment = Alignment.CenterVertically
+                                         // Height Display
+                                         Card(
+                                             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+                                             shape = RoundedCornerShape(14.dp),
+                                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                                             modifier = Modifier.weight(1f)
                                          ) {
-                                             Column {
+                                             Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                                 Row(
+                                                     modifier = Modifier.fillMaxWidth(),
+                                                     horizontalArrangement = Arrangement.SpaceBetween,
+                                                     verticalAlignment = Alignment.CenterVertically
+                                                 ) {
+                                                     Text(
+                                                         text = "Height",
+                                                         style = MaterialTheme.typography.labelMedium,
+                                                         color = Color.White.copy(alpha = 0.6f),
+                                                         fontWeight = FontWeight.Medium
+                                                     )
+                                                     Icon(
+                                                         imageVector = Icons.Default.Straighten,
+                                                         contentDescription = null,
+                                                         tint = Color(0xFF4FC3F7).copy(alpha = 0.8f),
+                                                         modifier = Modifier.size(16.dp)
+                                                     )
+                                                 }
+                                                 Spacer(modifier = Modifier.height(6.dp))
                                                  Text(
-                                                     text = "BMI Index",
-                                                     style = MaterialTheme.typography.labelMedium,
-                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                     fontWeight = FontWeight.Medium
-                                                 )
-                                                 Spacer(modifier = Modifier.height(2.dp))
-                                                 Text(
-                                                     text = if (bmi > 0) String.format("%.1f", bmi) else "N/A",
-                                                     style = MaterialTheme.typography.titleLarge,
-                                                     fontWeight = FontWeight.ExtraBold,
-                                                     color = bmiColor
-                                                 )
-                                             }
-                                             Box(
-                                                 modifier = Modifier
-                                                     .background(bmiColor.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                                                     .border(1.dp, bmiColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                                     .padding(horizontal = 10.dp, vertical = 5.dp)
-                                             ) {
-                                                 Text(
-                                                     text = bmiCategory,
-                                                     color = bmiColor,
+                                                     text = "${currentProfile.heightCm} cm",
+                                                     style = MaterialTheme.typography.titleMedium,
                                                      fontWeight = FontWeight.Bold,
-                                                     style = MaterialTheme.typography.labelSmall
+                                                     color = Color.White
                                                  )
                                              }
                                          }
 
-                                         // BMI Graphical Indicator Bar
-                                         if (bmi > 0) {
-                                             androidx.compose.foundation.Canvas(
-                                                 modifier = Modifier.fillMaxWidth().height(16.dp)
-                                             ) {
-                                                 val trackHeight = 6.dp.toPx()
-                                                 val yCenter = size.height / 2f
-                                                 val segmentSpacing = 3.dp.toPx()
-                                                 
-                                                 val totalWidth = size.width
-                                                 val usableWidth = totalWidth - (3 * segmentSpacing)
-                                                 val w1 = usableWidth * 0.175f // Underweight (15 to 18.5)
-                                                 val w2 = usableWidth * 0.325f // Normal (18.5 to 25.0)
-                                                 val w3 = usableWidth * 0.25f  // Overweight (25.0 to 30.0)
-                                                 val w4 = usableWidth * 0.25f  // Obese (30.0 to 35.0)
-
-                                                 // Draw track segments
-                                                 drawRoundRect(
-                                                     color = Color(0xFFFBC02D),
-                                                     topLeft = androidx.compose.ui.geometry.Offset(0f, yCenter - trackHeight/2),
-                                                     size = androidx.compose.ui.geometry.Size(w1, trackHeight),
-                                                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                                                 )
-                                                 drawRoundRect(
-                                                     color = Color(0xFF4CAF50),
-                                                     topLeft = androidx.compose.ui.geometry.Offset(w1 + segmentSpacing, yCenter - trackHeight/2),
-                                                     size = androidx.compose.ui.geometry.Size(w2, trackHeight),
-                                                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                                                 )
-                                                 drawRoundRect(
-                                                     color = Color(0xFFF57C00),
-                                                     topLeft = androidx.compose.ui.geometry.Offset(w1 + w2 + 2 * segmentSpacing, yCenter - trackHeight/2),
-                                                     size = androidx.compose.ui.geometry.Size(w3, trackHeight),
-                                                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                                                 )
-                                                 drawRoundRect(
-                                                     color = Color(0xFFD32F2F),
-                                                     topLeft = androidx.compose.ui.geometry.Offset(w1 + w2 + w3 + 3 * segmentSpacing, yCenter - trackHeight/2),
-                                                     size = androidx.compose.ui.geometry.Size(w4, trackHeight),
-                                                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                                                 )
-
-                                                 // Pointer marker
-                                                 val bmiClamped = bmi.toFloat().coerceIn(15f, 35f)
-                                                 val pct = (bmiClamped - 15f) / (35f - 15f)
-                                                 
-                                                 // Map the percentage correctly across the segments and gaps
-                                                 val pointerX = when {
-                                                     pct <= 0.175f -> {
-                                                         val subPct = pct / 0.175f
-                                                         subPct * w1
-                                                     }
-                                                     pct <= 0.500f -> {
-                                                         val subPct = (pct - 0.175f) / 0.325f
-                                                         w1 + segmentSpacing + (subPct * w2)
-                                                     }
-                                                     pct <= 0.750f -> {
-                                                         val subPct = (pct - 0.500f) / 0.25f
-                                                         w1 + w2 + 2 * segmentSpacing + (subPct * w3)
-                                                     }
-                                                     else -> {
-                                                         val subPct = (pct - 0.750f) / 0.25f
-                                                         w1 + w2 + w3 + 3 * segmentSpacing + (subPct * w4)
-                                                     }
+                                         // Weight Display
+                                         Card(
+                                             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+                                             shape = RoundedCornerShape(14.dp),
+                                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                                             modifier = Modifier.weight(1f)
+                                         ) {
+                                             Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                                                 Row(
+                                                     modifier = Modifier.fillMaxWidth(),
+                                                     horizontalArrangement = Arrangement.SpaceBetween,
+                                                     verticalAlignment = Alignment.CenterVertically
+                                                 ) {
+                                                     Text(
+                                                         text = "Weight",
+                                                         style = MaterialTheme.typography.labelMedium,
+                                                         color = Color.White.copy(alpha = 0.6f),
+                                                         fontWeight = FontWeight.Medium
+                                                     )
+                                                     Icon(
+                                                         imageVector = Icons.Default.Speed,
+                                                         contentDescription = null,
+                                                         tint = Color(0xFF4FC3F7).copy(alpha = 0.8f),
+                                                         modifier = Modifier.size(16.dp)
+                                                     )
                                                  }
-
-                                                 // Outer ring
-                                                 drawCircle(
-                                                     color = Color.White,
-                                                     radius = 7.dp.toPx(),
-                                                     center = androidx.compose.ui.geometry.Offset(pointerX, yCenter)
-                                                 )
-                                                 // Inner color dot
-                                                 drawCircle(
-                                                     color = bmiColor,
-                                                     radius = 4.5f.dp.toPx(),
-                                                     center = androidx.compose.ui.geometry.Offset(pointerX, yCenter)
+                                                 Spacer(modifier = Modifier.height(6.dp))
+                                                 Text(
+                                                     text = "${currentProfile.weightKg} kg",
+                                                     style = MaterialTheme.typography.titleMedium,
+                                                     fontWeight = FontWeight.Bold,
+                                                     color = Color.White
                                                  )
                                              }
                                          }
                                      }
-                                 }
+
+                                     // BMI Display on the next line
+                                     Card(
+                                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                                         shape = RoundedCornerShape(16.dp),
+                                         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                                         modifier = Modifier.fillMaxWidth()
+                                     ) {
+                                         Column(
+                                             modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                             verticalArrangement = Arrangement.spacedBy(8.dp)
+                                         ) {
+                                             Row(
+                                                 modifier = Modifier.fillMaxWidth(),
+                                                 horizontalArrangement = Arrangement.SpaceBetween,
+                                                 verticalAlignment = Alignment.CenterVertically
+                                             ) {
+                                                 Column {
+                                                     Text(
+                                                         text = "BMI Index",
+                                                         style = MaterialTheme.typography.labelMedium,
+                                                         color = Color.White.copy(alpha = 0.6f),
+                                                         fontWeight = FontWeight.Medium
+                                                     )
+                                                     Spacer(modifier = Modifier.height(2.dp))
+                                                     Text(
+                                                         text = if (bmi > 0) String.format("%.1f", bmi) else "N/A",
+                                                         style = MaterialTheme.typography.titleLarge,
+                                                         fontWeight = FontWeight.ExtraBold,
+                                                         color = bmiColor
+                                                     )
+                                                 }
+                                                 Box(
+                                                     modifier = Modifier
+                                                         .background(bmiColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                                         .border(1.dp, bmiColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                                         .padding(horizontal = 10.dp, vertical = 5.dp)
+                                                 ) {
+                                                     Text(
+                                                         text = bmiCategory,
+                                                         color = bmiColor,
+                                                         fontWeight = FontWeight.Bold,
+                                                         style = MaterialTheme.typography.labelSmall
+                                                     )
+                                                 }
+                                             }
+
+                                             // BMI Graphical Indicator Bar
+                                             if (bmi > 0) {
+                                                 androidx.compose.foundation.Canvas(
+                                                     modifier = Modifier.fillMaxWidth().height(16.dp)
+                                                 ) {
+                                                     val trackHeight = 6.dp.toPx()
+                                                     val yCenter = size.height / 2f
+                                                     val segmentSpacing = 3.dp.toPx()
+                                                     
+                                                     val totalWidth = size.width
+                                                     val usableWidth = totalWidth - (3 * segmentSpacing)
+                                                     val w1 = usableWidth * 0.175f
+                                                     val w2 = usableWidth * 0.325f
+                                                     val w3 = usableWidth * 0.25f
+                                                     val w4 = usableWidth * 0.25f
+
+                                                     drawRoundRect(
+                                                         color = Color(0xFFFBC02D),
+                                                         topLeft = androidx.compose.ui.geometry.Offset(0f, yCenter - trackHeight/2),
+                                                         size = androidx.compose.ui.geometry.Size(w1, trackHeight),
+                                                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                                                     )
+                                                     drawRoundRect(
+                                                         color = Color(0xFF4CAF50),
+                                                         topLeft = androidx.compose.ui.geometry.Offset(w1 + segmentSpacing, yCenter - trackHeight/2),
+                                                         size = androidx.compose.ui.geometry.Size(w2, trackHeight),
+                                                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                                                     )
+                                                     drawRoundRect(
+                                                         color = Color(0xFFF57C00),
+                                                         topLeft = androidx.compose.ui.geometry.Offset(w1 + w2 + 2 * segmentSpacing, yCenter - trackHeight/2),
+                                                         size = androidx.compose.ui.geometry.Size(w3, trackHeight),
+                                                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                                                     )
+                                                     drawRoundRect(
+                                                         color = Color(0xFFD32F2F),
+                                                         topLeft = androidx.compose.ui.geometry.Offset(w1 + w2 + w3 + 3 * segmentSpacing, yCenter - trackHeight/2),
+                                                         size = androidx.compose.ui.geometry.Size(w4, trackHeight),
+                                                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                                                     )
+
+                                                     val bmiClamped = bmi.toFloat().coerceIn(15f, 35f)
+                                                     val pct = (bmiClamped - 15f) / (35f - 15f)
+                                                     
+                                                     val pointerX = when {
+                                                         pct <= 0.175f -> {
+                                                             val subPct = pct / 0.175f
+                                                             subPct * w1
+                                                         }
+                                                         pct <= 0.500f -> {
+                                                             val subPct = (pct - 0.175f) / 0.325f
+                                                             w1 + segmentSpacing + (subPct * w2)
+                                                         }
+                                                         pct <= 0.750f -> {
+                                                             val subPct = (pct - 0.500f) / 0.25f
+                                                             w1 + w2 + 2 * segmentSpacing + (subPct * w3)
+                                                         }
+                                                         else -> {
+                                                             val subPct = (pct - 0.750f) / 0.25f
+                                                             w1 + w2 + w3 + 3 * segmentSpacing + (subPct * w4)
+                                                         }
+                                                     }
+
+                                                     drawCircle(
+                                                         color = Color.White,
+                                                         radius = 7.dp.toPx(),
+                                                         center = androidx.compose.ui.geometry.Offset(pointerX, yCenter)
+                                                     )
+                                                     drawCircle(
+                                                         color = bmiColor,
+                                                         radius = 4.5f.dp.toPx(),
+                                                         center = androidx.compose.ui.geometry.Offset(pointerX, yCenter)
+                                                     )
+                                                 }
+                                             }
+                                         }
+                                     }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Metrics Row Card
+            // Metrics Row Card — Colorful Gradient Panels
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Distance
+                    // Distance Card — Teal Gradient
                     val estKm = todaySteps * 0.00075
                     val kmGoal = 5.0
                     val kmProgress = (estKm / kmGoal).coerceIn(0.0, 1.0).toFloat()
-                    val secondaryColor = MaterialTheme.colorScheme.secondary
-                    val secondaryTrackColor = secondaryColor.copy(alpha = 0.15f)
                     Card(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.Start
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFF004D40), // Deep Teal
+                                            Color(0xFF00695C)  // Rich Teal
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            // Decorative Canvas overlay
+                            androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                                drawCircle(
+                                    color = Color(0xFF80CBC4).copy(alpha = 0.1f),
+                                    radius = size.height * 0.45f,
+                                    center = androidx.compose.ui.geometry.Offset(size.width * 0.85f, size.height * 0.2f)
+                                )
+                                val wavePath = androidx.compose.ui.graphics.Path().apply {
+                                    moveTo(0f, size.height * 0.8f)
+                                    cubicTo(size.width * 0.3f, size.height * 0.6f, size.width * 0.7f, size.height, size.width, size.height * 0.7f)
+                                    lineTo(size.width, size.height)
+                                    lineTo(0f, size.height)
+                                    close()
+                                }
+                                drawPath(wavePath, color = Color.White.copy(alpha = 0.04f))
+                            }
+
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.Start
                             ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Distance",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color(0xFFB2DFDB),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.DirectionsRun,
+                                        contentDescription = null,
+                                        tint = Color(0xFF80CBC4),
+                                        modifier = Modifier.size(18.dp).then(rememberRunningAnimation(isEnabled = isPermissionGranted))
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Distance",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    fontWeight = FontWeight.Medium
+                                    text = String.format("%.2f km", estKm),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsRun,
-                                    contentDescription = null,
-                                    tint = secondaryColor,
-                                    modifier = Modifier.size(18.dp).then(rememberRunningAnimation(isEnabled = isPermissionGranted))
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = String.format("%.2f km", estKm),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            
-                            // Graphic progress line
-                            androidx.compose.foundation.Canvas(
-                                modifier = Modifier.fillMaxWidth().height(4.dp)
-                            ) {
-                                val trackHeight = size.height
-                                val yCenter = size.height / 2f
-                                drawRoundRect(
-                                    color = secondaryTrackColor,
-                                    topLeft = Offset(0f, yCenter - trackHeight/2),
-                                    size = Size(size.width, trackHeight),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
-                                )
-                                drawRoundRect(
-                                    color = secondaryColor,
-                                    topLeft = Offset(0f, yCenter - trackHeight/2),
-                                    size = Size(size.width * kmProgress, trackHeight),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                // Graphic progress line
+                                androidx.compose.foundation.Canvas(
+                                    modifier = Modifier.fillMaxWidth().height(4.dp)
+                                ) {
+                                    val trackHeight = size.height
+                                    val yCenter = size.height / 2f
+                                    drawRoundRect(
+                                        color = Color.White.copy(alpha = 0.15f),
+                                        topLeft = Offset(0f, yCenter - trackHeight/2),
+                                        size = Size(size.width, trackHeight),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                    )
+                                    drawRoundRect(
+                                        color = Color(0xFF80CBC4),
+                                        topLeft = Offset(0f, yCenter - trackHeight/2),
+                                        size = Size(size.width * kmProgress, trackHeight),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${(kmProgress * 100).toInt()}% of 5 km",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 9.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "${(kmProgress * 100).toInt()}% of 5 km",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                                fontSize = 9.sp
-                            )
                         }
                     }
 
-                    // Calories
+                    // Calories Card — Rose-Pink Gradient
                     val estKcal = todaySteps * 0.04
                     val kcalGoal = 400.0
                     val kcalProgress = (estKcal / kcalGoal).coerceIn(0.0, 1.0).toFloat()
-                    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-                    val tertiaryTrackColor = tertiaryColor.copy(alpha = 0.15f)
                     Card(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.Start
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFF880E4F), // Deep Rose
+                                            Color(0xFFC2185B)  // Vibrant Pink
+                                        )
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            // Decorative Canvas overlay
+                            androidx.compose.foundation.Canvas(modifier = Modifier.matchParentSize()) {
+                                drawCircle(
+                                    color = Color(0xFFF48FB1).copy(alpha = 0.1f),
+                                    radius = size.height * 0.4f,
+                                    center = androidx.compose.ui.geometry.Offset(size.width * 0.15f, size.height * 0.2f)
+                                )
+                                val wavePath = androidx.compose.ui.graphics.Path().apply {
+                                    moveTo(0f, size.height * 0.75f)
+                                    cubicTo(size.width * 0.4f, size.height * 0.55f, size.width * 0.6f, size.height * 0.95f, size.width, size.height * 0.65f)
+                                    lineTo(size.width, size.height)
+                                    lineTo(0f, size.height)
+                                    close()
+                                }
+                                drawPath(wavePath, color = Color.White.copy(alpha = 0.04f))
+                            }
+
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.Start
                             ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Calories",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color(0xFFF8BBD0),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = null,
+                                        tint = Color(0xFFF48FB1),
+                                        modifier = Modifier.size(18.dp).then(rememberBeatingHeartAnimation(isEnabled = isPermissionGranted))
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Calories",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    fontWeight = FontWeight.Medium
+                                    text = String.format("%.0f kcal", estKcal),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
-                                Icon(
-                                    imageVector = Icons.Default.Favorite,
-                                    contentDescription = null,
-                                    tint = tertiaryColor,
-                                    modifier = Modifier.size(18.dp).then(rememberBeatingHeartAnimation(isEnabled = isPermissionGranted))
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = String.format("%.0f kcal", estKcal),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            
-                            // Graphic progress line
-                            androidx.compose.foundation.Canvas(
-                                modifier = Modifier.fillMaxWidth().height(4.dp)
-                            ) {
-                                val trackHeight = size.height
-                                val yCenter = size.height / 2f
-                                drawRoundRect(
-                                    color = tertiaryTrackColor,
-                                    topLeft = Offset(0f, yCenter - trackHeight/2),
-                                    size = Size(size.width, trackHeight),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
-                                )
-                                drawRoundRect(
-                                    color = tertiaryColor,
-                                    topLeft = Offset(0f, yCenter - trackHeight/2),
-                                    size = Size(size.width * kcalProgress, trackHeight),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                Spacer(modifier = Modifier.height(10.dp))
+                                
+                                // Graphic progress line
+                                androidx.compose.foundation.Canvas(
+                                    modifier = Modifier.fillMaxWidth().height(4.dp)
+                                ) {
+                                    val trackHeight = size.height
+                                    val yCenter = size.height / 2f
+                                    drawRoundRect(
+                                        color = Color.White.copy(alpha = 0.15f),
+                                        topLeft = Offset(0f, yCenter - trackHeight/2),
+                                        size = Size(size.width, trackHeight),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                    )
+                                    drawRoundRect(
+                                        color = Color(0xFFF48FB1),
+                                        topLeft = Offset(0f, yCenter - trackHeight/2),
+                                        size = Size(size.width * kcalProgress, trackHeight),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${(kcalProgress * 100).toInt()}% of 400 kcal",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 9.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "${(kcalProgress * 100).toInt()}% of 400 kcal",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.outline,
-                                fontSize = 9.sp
-                            )
                         }
                     }
                 }
             }
 
-            // Steps Log Header
+            // Steps Log Header — with decorative accent
             item {
-                Text(
-                    text = "Steps Logs History",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(22.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF4FC3F7), Color(0xFF1E88E5))
+                                ),
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                    )
+                    Text(
+                        text = "Steps Logs History",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
 
             if (stepRecords.isEmpty()) {
                 item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
                     ) {
-                        Text(
-                            text = "No step logs recorded. Click '+' to log your walking activity.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            textAlign = TextAlign.Center
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsWalk,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text(
+                                    text = "No step logs recorded.\nClick '+' to log your walking activity.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
                     }
                 }
             } else {
@@ -8776,55 +8908,78 @@ fun StepsScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DirectionsWalk,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            // Colorful left accent bar
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .fillMaxHeight()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color(0xFF4FC3F7), Color(0xFF1E88E5))
+                                        )
                                     )
-                                    Text(
-                                        text = String.format("%,d steps", record.steps),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = viewModel.formatEpochToDate(record.dateTimeMillis),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                                if (record.notes.isNotEmpty()) {
+                            )
+                            Row(
+                                modifier = Modifier.weight(1f).padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .background(
+                                                    Color(0xFF4FC3F7).copy(alpha = 0.12f),
+                                                    CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DirectionsWalk,
+                                                contentDescription = null,
+                                                tint = Color(0xFF4FC3F7),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = String.format("%,d steps", record.steps),
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = record.notes,
+                                        text = viewModel.formatEpochToDate(record.dateTimeMillis),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.outline
                                     )
+                                    if (record.notes.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = record.notes,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
-                            }
 
-                            Row {
-                                IconButton(onClick = { onEditStep(record) }) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.outline)
-                                }
-                                IconButton(onClick = {
-                                    viewModel.deleteStepRecord(record)
-                                    android.widget.Toast.makeText(context, "Step log deleted", android.widget.Toast.LENGTH_SHORT).show()
-                                }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                Row {
+                                    IconButton(onClick = { onEditStep(record) }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.outline)
+                                    }
+                                    IconButton(onClick = {
+                                        viewModel.deleteStepRecord(record)
+                                        android.widget.Toast.makeText(context, "Step log deleted", android.widget.Toast.LENGTH_SHORT).show()
+                                    }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                                    }
                                 }
                             }
                         }
