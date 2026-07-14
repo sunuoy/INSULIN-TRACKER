@@ -922,7 +922,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                         _latestReleaseNotes.value = body
                         _latestReleaseApkUrl.value = finalApkUrl
                         
-                        val currentVersion = "v1.1.0"
+                        val currentVersion = "v${com.example.BuildConfig.VERSION_NAME}"
                         if (isNewerVersion(currentVersion, tagName)) {
                             val cleanCurrent = currentVersion.lowercase().replace("v", "").trim()
                             val cleanLatest = tagName.lowercase().replace("v", "").trim()
