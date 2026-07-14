@@ -1845,13 +1845,13 @@ fun HomeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(11.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Log Insulin Button Card
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(100.dp)
+                        .height(80.dp)
                         .clickable { onLogInsulinClick() }
                         .testTag("home_add_insulin_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -1882,15 +1882,16 @@ fun HomeScreen(
                             )
                         }
 
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(15.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(35.dp)
+                                    .size(33.dp)
                                     .background(Color(0xFF3F51B5), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1899,15 +1900,15 @@ fun HomeScreen(
                                     contentDescription = "Insulin Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(19.dp)
+                                        .size(18.dp)
                                         .graphicsLayer {
                                             rotationZ = vaccinesRotation
                                         }
                                 )
                             }
-                            Column {
-                                Text("Insulin Dose", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text("Record Units taken", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.7f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Insulin Dose", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("Record Units", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -1917,7 +1918,7 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(111.dp)
+                        .height(80.dp)
                         .clickable { onLogGlucoseClick() }
                         .testTag("home_add_glucose_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
@@ -1948,15 +1949,16 @@ fun HomeScreen(
                             )
                         }
 
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(15.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(35.dp)
+                                    .size(33.dp)
                                     .background(Color(0xFFFB8C00), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1965,15 +1967,15 @@ fun HomeScreen(
                                     contentDescription = "Glucose Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(19.dp)
+                                        .size(18.dp)
                                         .graphicsLayer {
                                             translationY = waterTranslationY
                                         }
                                 )
                             }
-                            Column {
-                                Text("Glucose Level", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text("Log blood sugar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(0.7f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Glucose Level", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("Log Sugar", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -2007,13 +2009,13 @@ fun HomeScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(11.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Log Blood Pressure Card
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(111.dp)
+                        .height(80.dp)
                         .clickable { onLogBloodPressureClick() }
                         .testTag("home_add_bp_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
@@ -2044,15 +2046,16 @@ fun HomeScreen(
                             )
                         }
 
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(15.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(35.dp)
+                                    .size(33.dp)
                                     .background(Color(0xFFE53935), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2061,16 +2064,16 @@ fun HomeScreen(
                                     contentDescription = "Blood Pressure Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(19.dp)
+                                        .size(18.dp)
                                         .graphicsLayer {
                                             scaleX = heartScale
                                             scaleY = heartScale
                                         }
                                 )
                             }
-                            Column {
-                                Text("Blood Pressure", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text("Systolic & Diastolic", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.7f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Blood Pressure", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("Systolic/Diastolic", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -2080,7 +2083,7 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .height(111.dp)
+                        .height(80.dp)
                         .clickable { onRefillClick() }
                         .testTag("home_add_refill_button"),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
@@ -2111,15 +2114,16 @@ fun HomeScreen(
                             )
                         }
 
-                        Column(
+                        Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(15.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(35.dp)
+                                    .size(33.dp)
                                     .background(Color(0xFF00ACC1), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2128,15 +2132,15 @@ fun HomeScreen(
                                     contentDescription = "Refill Icon",
                                     tint = Color.White,
                                     modifier = Modifier
-                                        .size(19.dp)
+                                        .size(18.dp)
                                         .graphicsLayer {
                                             rotationZ = refreshRotation
                                         }
                                 )
                             }
-                            Column {
-                                Text("Cartridge Refill", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                Text("Change capacity size", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.7f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Cartridge Refill", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("Change Capacity", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -7975,7 +7979,7 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
 
     androidx.compose.foundation.Canvas(
         modifier = modifier
-            .size(46.dp)
+            .size(44.dp)
             .graphicsLayer {
                 this.translationY = translationY
             }
@@ -7988,8 +7992,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
             radius = width / 2f
         )
         
-        val cartridgeWidth = 13.5.dp.toPx()
-        val cartridgeHeight = 31.dp.toPx()
+        val cartridgeWidth = 13.dp.toPx()
+        val cartridgeHeight = 30.dp.toPx()
         val left = (width - cartridgeWidth) / 2f
         val top = (height - cartridgeHeight) / 2f
         
@@ -8019,8 +8023,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
             )
         }
         
-        val tipWidth = 3.8.dp.toPx()
-        val tipHeight = 3.8.dp.toPx()
+        val tipWidth = 3.6.dp.toPx()
+        val tipHeight = 3.6.dp.toPx()
         drawRect(
             color = Color.White.copy(alpha = 0.7f),
             topLeft = androidx.compose.ui.geometry.Offset((width - tipWidth) / 2f, top - tipHeight),
@@ -8028,8 +8032,8 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
         )
         
         val excX = width / 2f
-        val excYStart = top + 5.8.dp.toPx()
-        val excYEnd = top + 13.5.dp.toPx()
+        val excYStart = top + 5.5.dp.toPx()
+        val excYEnd = top + 13.dp.toPx()
         
         drawLine(
             color = Color.Red,
@@ -8039,7 +8043,7 @@ fun AnimatedLowInsulinGraphic(modifier: Modifier = Modifier) {
         )
         drawCircle(
             color = Color.Red,
-            radius = 1.2.dp.toPx(),
+            radius = 1.15.dp.toPx(),
             center = androidx.compose.ui.geometry.Offset(excX, excYEnd)
         )
     }
