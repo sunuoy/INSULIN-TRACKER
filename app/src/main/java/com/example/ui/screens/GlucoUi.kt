@@ -7622,8 +7622,8 @@ fun StepsScreen(
 
                             // Right Column: Height, Weight, BMI
                             Column(
-                                modifier = Modifier.weight(0.9f),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.weight(1.0f),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 val heightM = currentProfile.heightCm / 100.0
                                 val bmi = if (heightM > 0) currentProfile.weightKg / (heightM * heightM) else 0.0
@@ -7635,61 +7635,132 @@ fun StepsScreen(
                                     else -> "Obese" to Color(0xFFD32F2F)
                                 }
 
-                                // Height Display
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                                // Height & Weight side by side in a Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 5.dp)) {
-                                        Text("Height", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontSize = 9.sp)
-                                        Text("${currentProfile.heightCm} cm", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
-                                // Weight Display
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                                ) {
-                                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 5.dp)) {
-                                        Text("Weight", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontSize = 9.sp)
-                                        Text("${currentProfile.weightKg} kg", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
-                                // BMI Display
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 5.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    // Height Display
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        Column {
-                                            Text("BMI", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontSize = 9.sp)
-                                            Text(
-                                                text = if (bmi > 0) String.format("%.1f", bmi) else "N/A",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = bmiColor
-                                            )
+                                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                            Text("Height", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontSize = 9.sp)
+                                            Text("${currentProfile.heightCm} cm", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                                         }
-                                        Box(
-                                            modifier = Modifier
-                                                .background(bmiColor.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    }
+
+                                    // Weight Display
+                                    Card(
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                                            Text("Weight", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontSize = 9.sp)
+                                            Text("${currentProfile.weightKg} kg", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+
+                                // BMI Display on the next line
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = bmiCategory,
-                                                color = bmiColor,
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 7.sp
-                                            )
+                                            Column {
+                                                Text("BMI Indicator", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, fontSize = 9.sp)
+                                                Text(
+                                                    text = if (bmi > 0) String.format("%.1f", bmi) else "N/A",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = bmiColor
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(bmiColor.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(
+                                                    text = bmiCategory,
+                                                    color = bmiColor,
+                                                    fontWeight = FontWeight.Black,
+                                                    fontSize = 8.sp
+                                                )
+                                            }
+                                        }
+
+                                        // BMI Graphical Indicator Bar
+                                        if (bmi > 0) {
+                                            androidx.compose.foundation.Canvas(
+                                                modifier = Modifier.fillMaxWidth().height(12.dp)
+                                            ) {
+                                                val trackHeight = 4.dp.toPx()
+                                                val yCenter = size.height / 2f
+                                                
+                                                val w1 = size.width * 0.175f // Underweight (15 to 18.5)
+                                                val w2 = size.width * 0.325f // Normal (18.5 to 25.0)
+                                                val w3 = size.width * 0.25f  // Overweight (25.0 to 30.0)
+                                                val w4 = size.width * 0.25f  // Obese (30.0 to 35.0)
+
+                                                // Draw track segments
+                                                drawRoundRect(
+                                                    color = Color(0xFFFBC02D),
+                                                    topLeft = androidx.compose.ui.geometry.Offset(0f, yCenter - trackHeight/2),
+                                                    size = androidx.compose.ui.geometry.Size(w1 - 2.dp.toPx(), trackHeight),
+                                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                                )
+                                                drawRoundRect(
+                                                    color = Color(0xFF4CAF50),
+                                                    topLeft = androidx.compose.ui.geometry.Offset(w1, yCenter - trackHeight/2),
+                                                    size = androidx.compose.ui.geometry.Size(w2 - 2.dp.toPx(), trackHeight),
+                                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                                )
+                                                drawRoundRect(
+                                                    color = Color(0xFFF57C00),
+                                                    topLeft = androidx.compose.ui.geometry.Offset(w1 + w2, yCenter - trackHeight/2),
+                                                    size = androidx.compose.ui.geometry.Size(w3 - 2.dp.toPx(), trackHeight),
+                                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                                )
+                                                drawRoundRect(
+                                                    color = Color(0xFFD32F2F),
+                                                    topLeft = androidx.compose.ui.geometry.Offset(w1 + w2 + w3, yCenter - trackHeight/2),
+                                                    size = androidx.compose.ui.geometry.Size(w4, trackHeight),
+                                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx(), 2.dp.toPx())
+                                                )
+
+                                                // Pointer marker
+                                                val bmiClamped = bmi.toFloat().coerceIn(15f, 35f)
+                                                val pct = (bmiClamped - 15f) / (35f - 15f)
+                                                val pointerX = size.width * pct
+
+                                                drawCircle(
+                                                    color = Color.White,
+                                                    radius = 5.dp.toPx(),
+                                                    center = androidx.compose.ui.geometry.Offset(pointerX, yCenter)
+                                                )
+                                                drawCircle(
+                                                    color = bmiColor,
+                                                    radius = 3.dp.toPx(),
+                                                    center = androidx.compose.ui.geometry.Offset(pointerX, yCenter)
+                                                )
+                                            }
                                         }
                                     }
                                 }

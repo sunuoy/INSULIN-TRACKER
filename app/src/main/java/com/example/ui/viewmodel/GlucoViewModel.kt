@@ -1043,8 +1043,52 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 if (isRememberChecked) {
                     _savedUsernameOrEmail.value = userVal
                     _savedPassword.value = passVal
+                    
+                    val resolvedUsername = if (userVal.contains("@")) {
+                        prefs.getString("email_to_user_${userVal.lowercase()}", null)
+                    } else {
+                        userVal
+                    }
+                    if (resolvedUsername != null) {
+                        _isAdmin.value = (resolvedUsername == "admin")
+                        _loggedInUser.value = resolvedUsername
+                        _isLoggedIn.value = true
+                    }
+                    
                     if (resolvedEmail.isNotEmpty()) {
                         fetchGoogleDriveTokenAutomatically(application, resolvedEmail)
+                    }
+                    
+                    // Asynchronously authenticate with Firebase in the background
+                    if (userVal.isNotEmpty() && passVal.isNotEmpty() && resolvedUsername != null) {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            try {
+                                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                var resolvedEmail2 = prefs.getString("user_email_$resolvedUsername", "") ?: ""
+                                if (resolvedEmail2.isEmpty()) {
+                                    resolvedEmail2 = if (userVal.contains("@")) userVal else "${resolvedUsername.lowercase().replace(" ", "_")}@glucolog.app"
+                                }
+                                val safePassword = if (passVal.length >= 6) passVal else "${passVal}123456"
+                                auth.signInWithEmailAndPassword(resolvedEmail2, safePassword)
+                                    .addOnSuccessListener {
+                                        android.util.Log.d("AutoLogin", "Background auth success for $resolvedUsername")
+                                        syncAllDataToFirebase()
+                                    }
+                                    .addOnFailureListener { e ->
+                                        if (e is com.google.firebase.FirebaseNetworkException) {
+                                            android.util.Log.d("AutoLogin", "Background auth offline for $resolvedUsername")
+                                        } else {
+                                            android.util.Log.e("AutoLogin", "Background auth failed: ${e.message}")
+                                            viewModelScope.launch(Dispatchers.Main) {
+                                                logout()
+                                                _loginError.value = "Session expired. Please log in again."
+                                            }
+                                        }
+                                    }
+                            } catch (e: Exception) {
+                                android.util.Log.e("AutoLogin", "Background auth exception: ${e.message}")
+                            }
+                        }
                     }
                 }
             }
