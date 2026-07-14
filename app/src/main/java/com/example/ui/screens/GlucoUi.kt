@@ -4468,7 +4468,7 @@ fun ReminderCard(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         // Chips Row
                         Row(
@@ -4498,6 +4498,8 @@ fun ReminderCard(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(16.dp))
 
                         // Weekdays Row (S, M, T, W, T, F, S)
                         val parsedDays = remember(target.daysOfWeek) {
