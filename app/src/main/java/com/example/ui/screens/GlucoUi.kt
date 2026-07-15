@@ -2277,12 +2277,42 @@ fun HomeScreen(
 
         // Insulin Cartridge Balance Tracker Card
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp)
             ) {
+                // 3D Shadow Layer (underneath)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .offset(x = 4.dp, y = 5.dp)
+                        .background(
+                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+
+                // Main Floating Card Layer
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.25f),
+                                Color.Black.copy(alpha = 0.3f)
+                            )
+                        )
+                    )
+                ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -2464,17 +2494,47 @@ fun HomeScreen(
                     }
                 }
             }
-
         }
+    }
 
         // Today's Circular Dashboard Stats & Fresh Logs Dashboard
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth().testTag("clinical_dashboard_card"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp)
             ) {
+                // 3D Shadow Layer (underneath)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .offset(x = 4.dp, y = 5.dp)
+                        .background(
+                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+
+                // Main Floating Card Layer
+                Card(
+                    modifier = Modifier.fillMaxWidth().testTag("clinical_dashboard_card"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.25f),
+                                Color.Black.copy(alpha = 0.3f)
+                            )
+                        )
+                    )
+                ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -2529,16 +2589,42 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Canvas(modifier = Modifier.size(70.dp)) {
+                                    // 1. Recessed background track
                                     drawCircle(
-                                        color = Color.LightGray.copy(alpha = 0.2f),
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
+                                        color = Color.Black.copy(alpha = 0.18f),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 7.dp.toPx())
                                     )
+                                    drawCircle(
+                                        color = Color.White.copy(alpha = 0.05f),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx())
+                                    )
+                                    
+                                    val sweep = (reportsData.todayGlucoseAvg.coerceIn(0.0, 300.0) / 300.0 * 360.0).toFloat()
+                                    val arcColor = if (reportsData.todayGlucoseAvg > profile.targetGlucoseMax || reportsData.todayGlucoseAvg < profile.targetGlucoseMin) Color(0xFFFF9800) else Color(0xFF4CAF50)
+                                    
+                                    // 2. Base colored 3D tube (thick)
                                     drawArc(
-                                        color = if (reportsData.todayGlucoseAvg > profile.targetGlucoseMax || reportsData.todayGlucoseAvg < profile.targetGlucoseMin) Color(0xFFFF9800) else Color(0xFF4CAF50),
+                                        color = arcColor.copy(alpha = 0.4f),
                                         startAngle = -90f,
-                                        sweepAngle = (reportsData.todayGlucoseAvg.coerceIn(0.0, 300.0) / 300.0 * 360.0).toFloat(),
+                                        sweepAngle = sweep,
                                         useCenter = false,
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                    )
+                                    // 3. Core colored arc
+                                    drawArc(
+                                        color = arcColor,
+                                        startAngle = -90f,
+                                        sweepAngle = sweep,
+                                        useCenter = false,
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                    )
+                                    // 4. White light reflection highlight on the 3D tube
+                                    drawArc(
+                                        color = Color.White.copy(alpha = 0.45f),
+                                        startAngle = -90f,
+                                        sweepAngle = sweep,
+                                        useCenter = false,
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -2565,16 +2651,42 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Canvas(modifier = Modifier.size(70.dp)) {
+                                    // 1. Recessed background track
                                     drawCircle(
-                                        color = Color.LightGray.copy(alpha = 0.2f),
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
+                                        color = Color.Black.copy(alpha = 0.18f),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 7.dp.toPx())
                                     )
+                                    drawCircle(
+                                        color = Color.White.copy(alpha = 0.05f),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx())
+                                    )
+                                    
+                                    val sweep = (reportsData.todayInsulinTotal.coerceIn(0.0, 100.0) / 100.0 * 360.0).toFloat()
+                                    val arcColor = Color(0xFF2196F3)
+                                    
+                                    // 2. Base colored 3D tube (thick)
                                     drawArc(
-                                        color = Color(0xFF2196F3),
+                                        color = arcColor.copy(alpha = 0.4f),
                                         startAngle = -90f,
-                                        sweepAngle = (reportsData.todayInsulinTotal.coerceIn(0.0, 100.0) / 100.0 * 360.0).toFloat(),
+                                        sweepAngle = sweep,
                                         useCenter = false,
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.dp.toPx())
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                    )
+                                    // 3. Core colored arc
+                                    drawArc(
+                                        color = arcColor,
+                                        startAngle = -90f,
+                                        sweepAngle = sweep,
+                                        useCenter = false,
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                                    )
+                                    // 4. White light reflection highlight on the 3D tube
+                                    drawArc(
+                                        color = Color.White.copy(alpha = 0.45f),
+                                        startAngle = -90f,
+                                        sweepAngle = sweep,
+                                        useCenter = false,
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
                                     )
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -2626,6 +2738,16 @@ fun HomeScreen(
                                     .background(
                                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
                                         RoundedCornerShape(12.dp)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                            colors = listOf(
+                                                Color.White.copy(alpha = 0.18f),
+                                                Color.Black.copy(alpha = 0.25f)
+                                            )
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
                                     )
                                     .padding(vertical = 14.dp, horizontal = 16.dp)
                             ) {
@@ -3096,6 +3218,7 @@ fun HomeScreen(
                 }
             }
         }
+    }
 
         // Active Reminders Highlights List
         item {
