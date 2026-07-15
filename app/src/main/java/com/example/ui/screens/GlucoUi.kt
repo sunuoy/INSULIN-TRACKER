@@ -968,17 +968,30 @@ fun LoginScreen(viewModel: GlucoViewModel) {
         )
     }
 
+    val themeBg = MaterialTheme.colorScheme.background
+    val themePrimary = MaterialTheme.colorScheme.primary
+    val themeSecondary = MaterialTheme.colorScheme.secondary
+    val themeOnSurface = MaterialTheme.colorScheme.onSurface
+    val themeSurfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+
+    val isLightBg = themeBg.let { bg ->
+        (bg.red * 0.299f + bg.green * 0.587f + bg.blue * 0.114f) > 0.5f
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0F19)),
+            .background(themeBg),
         contentAlignment = Alignment.Center
     ) {
         // Decorative Ambient Glowing Blobs
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF4F46E5).copy(alpha = 0.22f), Color.Transparent),
+                    colors = listOf(
+                        themePrimary.copy(alpha = if (isLightBg) 0.08f else 0.22f),
+                        Color.Transparent
+                    ),
                     radius = size.width * 0.65f
                 ),
                 radius = size.width * 0.65f,
@@ -986,7 +999,10 @@ fun LoginScreen(viewModel: GlucoViewModel) {
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF06B6D4).copy(alpha = 0.18f), Color.Transparent),
+                    colors = listOf(
+                        themeSecondary.copy(alpha = if (isLightBg) 0.06f else 0.18f),
+                        Color.Transparent
+                    ),
                     radius = size.width * 0.65f
                 ),
                 radius = size.width * 0.65f,
@@ -1001,12 +1017,12 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                 .padding(24.dp)
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.08f),
+                    color = themeOnSurface.copy(alpha = if (isLightBg) 0.08f else 0.05f),
                     shape = RoundedCornerShape(24.dp)
                 )
                 .testTag("login_card"),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF151B2C).copy(alpha = 0.88f)),
+            colors = CardDefaults.cardColors(containerColor = themeSurfaceVariant.copy(alpha = 0.92f)),
             elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
         ) {
             Column(
