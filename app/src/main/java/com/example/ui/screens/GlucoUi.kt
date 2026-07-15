@@ -8355,20 +8355,23 @@ fun SettingsScreen(
             // Theme Customization Card
             var showThemeDropdown by remember { mutableStateOf(false) }
             val selectedThemeCode by viewModel.selectedTheme.collectAsStateWithLifecycle()
-            val themeOptions = listOf(
+            val lightThemes = listOf(
                 Triple("arctic", "Arctic Light", "Light / Clean SaaS theme"),
+                Triple("sakura", "Sakura Blossom", "Light / Romantic Pastel Pink"),
+                Triple("lemon_zest", "Lemon Zest", "Light / Warm Sunny Yellow"),
+                Triple("desert_sand", "Desert Sand", "Light / Terracotta Sand Style"),
+                Triple("slate_pro", "Slate Pro", "Light / Professional Cool Gray"),
+                Triple("coral_bloom", "Coral Bloom", "Light / Fresh Energetic Coral")
+            )
+            val darkThemes = listOf(
                 Triple("ocean_depth", "Ocean Depth", "Dark / High-Contrast Marine theme"),
                 Triple("aurora", "Aurora Indigo", "Dark / Purple Neon style"),
                 Triple("midnight_carbon", "Midnight Carbon", "Dark / Minimalist Slate theme"),
-                Triple("sakura", "Sakura Blossom", "Light / Romantic Pastel Pink"),
-                Triple("lemon_zest", "Lemon Zest", "Light / Warm Sunny Yellow"),
                 Triple("forest_calm", "Forest Calm", "Dark / Organic Deep Green"),
-                Triple("desert_sand", "Desert Sand", "Light / Terracotta Sand Style"),
                 Triple("neon_noir", "Neon Noir", "Dark / Vibrant Cyberpunk accents"),
-                Triple("slate_pro", "Slate Pro", "Light / Professional Cool Gray"),
-                Triple("royal_ink", "Royal Ink", "Dark / Premium Indigo Sapphire"),
-                Triple("coral_bloom", "Coral Bloom", "Light / Fresh Energetic Coral")
+                Triple("royal_ink", "Royal Ink", "Dark / Premium Indigo Sapphire")
             )
+            val themeOptions = lightThemes + darkThemes
             val activeThemePair = themeOptions.find { it.first == selectedThemeCode } ?: themeOptions[0]
 
             Card(
@@ -8420,21 +8423,30 @@ fun SettingsScreen(
                             onDismissRequest = { showThemeDropdown = false },
                             modifier = Modifier.fillMaxWidth(0.9f)
                         ) {
-                            themeOptions.forEach { theme ->
+                            // LIGHT THEMES HEADER
+                            DropdownMenuItem(
+                                enabled = false,
+                                onClick = {},
+                                text = {
+                                    Text(
+                                        text = "LIGHT THEMES",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+                            )
+
+                            lightThemes.forEach { theme ->
                                 DropdownMenuItem(
                                     leadingIcon = {
                                         val indicatorColor = when (theme.first) {
-                                            "ocean_depth" -> Color(0xFF3B9EFF)
-                                            "aurora" -> Color(0xFFA78BFA)
-                                            "midnight_carbon" -> Color(0xFFE8E8E8)
                                             "sakura" -> Color(0xFFE91E8C)
                                             "arctic" -> Color(0xFF0066CC)
                                             "lemon_zest" -> Color(0xFFD4A017)
-                                            "forest_calm" -> Color(0xFF5CB85C)
                                             "desert_sand" -> Color(0xFFC2853A)
-                                            "neon_noir" -> Color(0xFFFF2D78)
                                             "slate_pro" -> Color(0xFF3D5A80)
-                                            "royal_ink" -> Color(0xFF6C63FF)
                                             "coral_bloom" -> Color(0xFFFF5733)
                                             else -> MaterialTheme.colorScheme.primary
                                         }
@@ -8451,7 +8463,65 @@ fun SettingsScreen(
                                         ) {
                                             Text(theme.second, fontWeight = if (theme.first == selectedThemeCode) FontWeight.Bold else FontWeight.Normal)
                                             Text(
-                                                text = if (theme.third.contains("Dark")) "Dark" else "Light",
+                                                text = "Light",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.selectTheme(theme.first)
+                                        showThemeDropdown = false
+                                    }
+                                )
+                            }
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            // DARK THEMES HEADER
+                            DropdownMenuItem(
+                                enabled = false,
+                                onClick = {},
+                                text = {
+                                    Text(
+                                        text = "DARK THEMES",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+                            )
+
+                            darkThemes.forEach { theme ->
+                                DropdownMenuItem(
+                                    leadingIcon = {
+                                        val indicatorColor = when (theme.first) {
+                                            "ocean_depth" -> Color(0xFF3B9EFF)
+                                            "aurora" -> Color(0xFFA78BFA)
+                                            "midnight_carbon" -> Color(0xFFE8E8E8)
+                                            "forest_calm" -> Color(0xFF5CB85C)
+                                            "neon_noir" -> Color(0xFFFF2D78)
+                                            "royal_ink" -> Color(0xFF6C63FF)
+                                            else -> MaterialTheme.colorScheme.primary
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .background(indicatorColor, RoundedCornerShape(4.dp))
+                                        )
+                                    },
+                                    text = {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(theme.second, fontWeight = if (theme.first == selectedThemeCode) FontWeight.Bold else FontWeight.Normal)
+                                            Text(
+                                                text = "Dark",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.outline
                                             )
