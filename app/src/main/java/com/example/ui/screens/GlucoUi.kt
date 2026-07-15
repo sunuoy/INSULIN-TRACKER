@@ -1587,9 +1587,16 @@ fun GoogleSignInDialog(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancel")
+                        }
+
                         TextButton(
                             onClick = {
                                 if (timerSeconds == 0) {
@@ -1604,10 +1611,10 @@ fun GoogleSignInDialog(
                                 }
                             },
                             enabled = timerSeconds == 0,
-                            modifier = Modifier.testTag("google_resend_otp_btn")
+                            modifier = Modifier.weight(1f).testTag("google_resend_otp_btn")
                         ) {
                             Text(
-                                if (timerSeconds > 0) "Resend code in ${timerSeconds}s" else "Resend code"
+                                if (timerSeconds > 0) "Resend (${timerSeconds}s)" else "Resend"
                             )
                         }
 
@@ -1620,9 +1627,9 @@ fun GoogleSignInDialog(
                                     otpError = "Invalid verification code. Please check the notification banner."
                                 }
                             },
-                            modifier = Modifier.testTag("google_verify_otp_btn")
+                            modifier = Modifier.weight(1.5f).testTag("google_verify_otp_btn")
                         ) {
-                            Text("Verify & Register")
+                            Text("Verify", maxLines = 1)
                         }
                     }
                 } else if (step == 3) {
