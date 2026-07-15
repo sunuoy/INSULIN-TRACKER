@@ -1442,13 +1442,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             repository.insertInsulinRecord(record)
-            if (selectedInsulinIdToEdit == null) {
-                val currentProf = repository.getProfileSync()
-                if (currentProf != null) {
-                    val remaining = (currentProf.cartridgeRemaining - parsedDose).coerceAtLeast(0.0)
-                    repository.insertOrUpdateProfile(currentProf.copy(cartridgeRemaining = remaining))
-                }
-            }
+            recalculateCartridgeRemaining()
 
             // Cloud Firestore Sync
             try {
@@ -1482,6 +1476,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteInsulinRecord(record: InsulinRecord) {
         viewModelScope.launch {
             repository.deleteInsulinRecord(record)
+            recalculateCartridgeRemaining()
         }
     }
 
@@ -1875,12 +1870,51 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteRefillLog(log: CartridgeRefillLog) {
         viewModelScope.launch {
             repository.deleteRefillLog(log)
+            recalculateCartridgeRemaining()
         }
     }
 
     fun clearAllRefillLogs() {
         viewModelScope.launch {
             repository.clearAllRefillLogs()
+            recalculateCartridgeRemaining()
+        }
+    }
+
+    private suspend fun recalculateCartridgeRemaining() {
+        val currentProf = repository.getProfileSync() ?: return
+        
+        // Fetch current lists of refills and doses synchronously
+        val refills = repository.allRefillLogs.first()
+        val doses = repository.allInsulinRecords.first()
+        
+        // Find the most recent refill log after deletion has completed
+        val mostRecentRefill = refills.maxByOrNull { it.dateTimeMillis }
+        
+        if (mostRecentRefill != null) {
+            val capacity = mostRecentRefill.capacity
+            val refillTime = mostRecentRefill.dateTimeMillis
+            
+            // Sum all insulin doses taken after the refill time
+            val totalDose = doses
+                .filter { it.dateTimeMillis >= refillTime }
+                .sumOf { it.doseUnits }
+                
+            val remaining = (capacity - totalDose).coerceAtLeast(0.0)
+            repository.insertOrUpdateProfile(
+                currentProf.copy(
+                    cartridgeCapacity = capacity,
+                    cartridgeRemaining = remaining
+                )
+            )
+        } else {
+            // No refills exist at all! Revert cartridge remaining units to 0
+            repository.insertOrUpdateProfile(
+                currentProf.copy(
+                    cartridgeCapacity = 300.0,
+                    cartridgeRemaining = 0.0
+                )
+            )
         }
     }
 
@@ -2468,6 +2502,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 refills.filter { it.actionType == "Refill" && it.capacity == 300.0 }.forEach {
                     repository.deleteRefillLog(it)
                 }
+                recalculateCartridgeRemaining()
             } catch (e: Exception) {
                 android.util.Log.e("GlucoViewModel", "Error clearing dummy data: ${e.message}")
             }
@@ -2605,6 +2640,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             repository.clearAllInsulinRecords()
             repository.clearAllBloodPressureRecords()
             repository.clearAllRefillLogs()
+            recalculateCartridgeRemaining()
             onComplete()
         }
     }
