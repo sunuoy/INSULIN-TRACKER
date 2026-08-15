@@ -1730,6 +1730,17 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun saveStepRecordDirect(count: Int, notes: String = "Test Walk") {
+        val record = StepCountRecord(
+            steps = count,
+            dateTimeMillis = getCurrentTimeMillis(),
+            notes = notes
+        )
+        viewModelScope.launch {
+            repository.insertStepRecord(record)
+        }
+    }
+
     fun deleteStepRecord(record: StepCountRecord) {
         viewModelScope.launch {
             repository.deleteStepRecord(record)
