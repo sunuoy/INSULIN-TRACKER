@@ -45,7 +45,15 @@ enum class AppScreen {
 @OptIn(kotlinx.coroutines.FlowPreview::class)
 class GlucoViewModel(application: Application) : AndroidViewModel(application) {
 
-    private lateinit var repository: AppRepository
+    private val repository: AppRepository = AppRepository(
+        AppDatabase.getDatabase(application).insulinDao(),
+        AppDatabase.getDatabase(application).glucoseDao(),
+        AppDatabase.getDatabase(application).reminderDao(),
+        AppDatabase.getDatabase(application).profileDao(),
+        AppDatabase.getDatabase(application).cartridgeRefillLogDao(),
+        AppDatabase.getDatabase(application).bloodPressureDao(),
+        AppDatabase.getDatabase(application).stepDao()
+    )
 
     // App Updates states
     private val _updateCheckStatus = MutableStateFlow<String?>(null)
@@ -1315,16 +1323,6 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        val database = AppDatabase.getDatabase(application)
-        repository = AppRepository(
-            database.insulinDao(),
-            database.glucoseDao(),
-            database.reminderDao(),
-            database.profileDao(),
-            database.cartridgeRefillLogDao(),
-            database.bloodPressureDao(),
-            database.stepDao()
-        )
 
         // Initialize default guest profile on start
         switchActiveProfile("")
