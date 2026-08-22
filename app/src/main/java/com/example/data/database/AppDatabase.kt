@@ -18,6 +18,9 @@ import com.example.data.model.CartridgeRefillLog
 import com.example.data.model.BloodPressureRecord
 import com.example.data.model.StepCountRecord
 import com.example.data.dao.StepDao
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
 
 @Database(
     entities = [
@@ -42,6 +45,17 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun stepDao(): StepDao
 
     companion object {
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN carbRatio REAL NOT NULL DEFAULT 10.0")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN insulinSensitivity REAL NOT NULL DEFAULT 50.0")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN targetGlucose REAL NOT NULL DEFAULT 100.0")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN emergencyContactName TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN emergencyContactPhone TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE user_profiles ADD COLUMN emergencyCustomMessage TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -52,6 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "glucolog_database"
                 )
+                .addMigrations(MIGRATION_9_10)
                 .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance
