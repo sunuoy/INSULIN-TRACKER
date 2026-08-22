@@ -115,6 +115,18 @@ fun LoginScreen(viewModel: GlucoViewModel) {
     var prefilledGoogleName by remember { mutableStateOf("") }
     var prefilledGoogleUsername by remember { mutableStateOf("") }
 
+    val gso = remember {
+        com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+            com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+        )
+        .requestEmail()
+        .requestProfile()
+        .build()
+    }
+    val googleSignInClient = remember(context) {
+        com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(context, gso)
+    }
+
     val googleAccountPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -129,6 +141,48 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                 prefilledGoogleUsername = namePart.lowercase()
                 viewModel.loginWithGoogleProfile(formattedName, accountName, namePart.lowercase())
             }
+        }
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            if (account != null) {
+                val emailStr = account.email ?: ""
+                val nameStr = account.displayName ?: if (emailStr.isNotEmpty()) emailStr.substringBefore("@") else "Google User"
+                val usernameStr = if (emailStr.contains("@")) emailStr.substringBefore("@").lowercase() else nameStr.lowercase().replace(" ", "_")
+
+                viewModel.loginWithGoogleProfile(nameStr, emailStr, usernameStr)
+                android.widget.Toast.makeText(context, "Welcome $nameStr!", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("GoogleSignIn", "Google Play Services sign in failed, trying fallback: ${e.message}", e)
+            try {
+                val intent = android.accounts.AccountManager.newChooseAccountIntent(
+                    null, null, arrayOf("com.google"), null, null, null, null
+                )
+                googleAccountPickerLauncher.launch(intent)
+            } catch (ex: Exception) {
+                prefilledGoogleEmail = ""
+                prefilledGoogleName = ""
+                prefilledGoogleUsername = ""
+                showGoogleSignInDialog = true
+            }
+        }
+    }
+
+    val launchGoogleSignIn: () -> Unit = {
+        try {
+            googleSignInClient.signOut().addOnCompleteListener {
+                val signInIntent = googleSignInClient.signInIntent
+                googleSignInLauncher.launch(signInIntent)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("GoogleSignIn", "Failed to launch google sign in intent: ${e.message}", e)
+            showGoogleSignInDialog = true
         }
     }
 
@@ -529,26 +583,7 @@ fun LoginScreen(viewModel: GlucoViewModel) {
 
                     // Sign up with Google Button
                     OutlinedButton(
-                        onClick = {
-                            try {
-                                val intent = android.accounts.AccountManager.newChooseAccountIntent(
-                                    null,
-                                    null,
-                                    arrayOf("com.google"),
-                                    null,
-                                    null,
-                                    null,
-                                    null
-                                )
-                                googleAccountPickerLauncher.launch(intent)
-                            } catch (e: Exception) {
-                                android.util.Log.e("GoogleSignUp", "Failed to launch native account picker: ${e.message}", e)
-                                prefilledGoogleEmail = ""
-                                prefilledGoogleName = ""
-                                prefilledGoogleUsername = ""
-                                showGoogleSignInDialog = true
-                            }
-                        },
+                        onClick = { launchGoogleSignIn() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
@@ -592,26 +627,7 @@ fun LoginScreen(viewModel: GlucoViewModel) {
 
                     // Sign in with Google Button
                     OutlinedButton(
-                        onClick = {
-                            try {
-                                val intent = android.accounts.AccountManager.newChooseAccountIntent(
-                                    null,
-                                    null,
-                                    arrayOf("com.google"),
-                                    null,
-                                    null,
-                                    null,
-                                    null
-                                )
-                                googleAccountPickerLauncher.launch(intent)
-                            } catch (e: Exception) {
-                                android.util.Log.e("GoogleSignIn", "Failed to launch native account picker: ${e.message}", e)
-                                prefilledGoogleEmail = ""
-                                prefilledGoogleName = ""
-                                prefilledGoogleUsername = ""
-                                showGoogleSignInDialog = true
-                            }
-                        },
+                        onClick = { launchGoogleSignIn() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
