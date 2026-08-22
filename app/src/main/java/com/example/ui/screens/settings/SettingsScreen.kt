@@ -107,6 +107,12 @@ fun SettingsScreen(
     val prefs = remember { context.getSharedPreferences("gluco_auth_prefs", android.content.Context.MODE_PRIVATE) }
     val linkedEmail = remember(loggedInUser) { prefs.getString("user_email_$loggedInUser", "") ?: "" }
 
+    // Passcode lock states
+    val isPasscodeEnabled by viewModel.isPasscodeEnabled.collectAsStateWithLifecycle()
+    var showPasscodeSetupDialog by remember { mutableStateOf(false) }
+    var showPasscodeChangeDialog by remember { mutableStateOf(false) }
+    var showPasscodeDisableDialog by remember { mutableStateOf(false) }
+
     // Archive, backup, and restore states
     var showExportDialog by remember { mutableStateOf(false) }
     var exportJsonText by remember { mutableStateOf("") }
@@ -284,6 +290,118 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Log Out", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+
+            // Security & Passcode Lock Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("security_passcode_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Passcode Security Icon",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "Security & App Lock",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (isPasscodeEnabled) "Passcode active on app open" else "Require 4-digit PIN on app open",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isPasscodeEnabled,
+                            onCheckedChange = { enable ->
+                                if (enable) {
+                                    showPasscodeSetupDialog = true
+                                } else {
+                                    showPasscodeDisableDialog = true
+                                }
+                            }
+                        )
+                    }
+
+                    if (isPasscodeEnabled) {
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showPasscodeChangeDialog = true },
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.VpnKey,
+                                    contentDescription = "Change Passcode",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Change PIN", fontSize = 12.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.lockApp()
+                                    android.widget.Toast.makeText(context, "App locked", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f).height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Lock App Now",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Lock Now", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
@@ -965,6 +1083,30 @@ fun SettingsScreen(
                     Text("Keep My Data")
                 }
             }
+        )
+    }
+
+    if (showPasscodeSetupDialog) {
+        PasscodeSetupDialog(
+            viewModel = viewModel,
+            onDismiss = { showPasscodeSetupDialog = false },
+            onSuccess = { showPasscodeSetupDialog = false }
+        )
+    }
+
+    if (showPasscodeChangeDialog) {
+        PasscodeChangeDialog(
+            viewModel = viewModel,
+            onDismiss = { showPasscodeChangeDialog = false },
+            onSuccess = { showPasscodeChangeDialog = false }
+        )
+    }
+
+    if (showPasscodeDisableDialog) {
+        PasscodeDisableDialog(
+            viewModel = viewModel,
+            onDismiss = { showPasscodeDisableDialog = false },
+            onSuccess = { showPasscodeDisableDialog = false }
         )
     }
 }

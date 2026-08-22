@@ -102,6 +102,8 @@ data class NavigationItem(
 @Composable
 fun GlucoAppLayout(viewModel: GlucoViewModel) {
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val isAppLocked by viewModel.isAppLocked.collectAsStateWithLifecycle()
+    val isPasscodeEnabled by viewModel.isPasscodeEnabled.collectAsStateWithLifecycle()
     val isUpdateAvailable by viewModel.isUpdateAvailable.collectAsStateWithLifecycle()
     val latestVersion by viewModel.latestReleaseVersion.collectAsStateWithLifecycle()
     val changeCategory by viewModel.updateChangeCategory.collectAsStateWithLifecycle()
@@ -111,6 +113,8 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
 
     if (!isLoggedIn) {
         LoginScreen(viewModel = viewModel)
+    } else if (isPasscodeEnabled && isAppLocked) {
+        PasscodeLockScreen(viewModel = viewModel)
     } else {
         val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
         val rawInsulinList by viewModel.insulinRecords.collectAsStateWithLifecycle()

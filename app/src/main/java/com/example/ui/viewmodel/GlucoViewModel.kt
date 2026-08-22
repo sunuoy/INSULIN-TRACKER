@@ -89,6 +89,95 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     private val _googleDriveLastSyncTime = MutableStateFlow("Never")
     val googleDriveLastSyncTime: StateFlow<String> = _googleDriveLastSyncTime.asStateFlow()
 
+    // App Passcode Lock State
+    private val _isPasscodeEnabled = MutableStateFlow(false)
+    val isPasscodeEnabled: StateFlow<Boolean> = _isPasscodeEnabled.asStateFlow()
+
+    private val _isAppLocked = MutableStateFlow(false)
+    val isAppLocked: StateFlow<Boolean> = _isAppLocked.asStateFlow()
+
+    fun isPasscodeConfigured(): Boolean {
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        val pin = prefs.getString("app_passcode_pin", "") ?: ""
+        return pin.isNotEmpty()
+    }
+
+    fun setPasscode(newPin: String): Boolean {
+        if (newPin.length != 4 || !newPin.all { it.isDigit() }) return false
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("app_passcode_enabled", true)
+            .putString("app_passcode_pin", newPin)
+            .apply()
+        _isPasscodeEnabled.value = true
+        _isAppLocked.value = false
+        return true
+    }
+
+    fun verifyPasscode(pin: String): Boolean {
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        val savedPin = prefs.getString("app_passcode_pin", "") ?: ""
+        return savedPin.isNotEmpty() && savedPin == pin
+    }
+
+    fun unlockWithPasscode(enteredPin: String): Boolean {
+        if (verifyPasscode(enteredPin)) {
+            _isAppLocked.value = false
+            return true
+        }
+        return false
+    }
+
+    fun changePasscode(currentPin: String, newPin: String): Boolean {
+        if (!verifyPasscode(currentPin)) return false
+        if (newPin.length != 4 || !newPin.all { it.isDigit() }) return false
+        return setPasscode(newPin)
+    }
+
+    fun disablePasscode(currentPin: String): Boolean {
+        if (!verifyPasscode(currentPin)) return false
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean("app_passcode_enabled", false)
+            .remove("app_passcode_pin")
+            .apply()
+        _isPasscodeEnabled.value = false
+        _isAppLocked.value = false
+        return true
+    }
+
+    fun resetPasscodeWithAccountPassword(password: String): Boolean {
+        val user = _loggedInUser.value
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        val isVerified = if (user == "admin" || _isAdmin.value) {
+            password == "yM*d^@Irf 741$"
+        } else if (user.isNotEmpty()) {
+            val savedPass = prefs.getString("user_pass_$user", "") ?: ""
+            savedPass.isNotEmpty() && savedPass == password
+        } else {
+            val remUser = prefs.getString("remember_me_username", "") ?: ""
+            val savedPass = if (remUser.isNotEmpty()) prefs.getString("user_pass_$remUser", "") ?: "" else ""
+            (savedPass.isNotEmpty() && savedPass == password) || (password == "admin")
+        }
+
+        if (isVerified) {
+            prefs.edit()
+                .putBoolean("app_passcode_enabled", false)
+                .remove("app_passcode_pin")
+                .apply()
+            _isPasscodeEnabled.value = false
+            _isAppLocked.value = false
+            return true
+        }
+        return false
+    }
+
+    fun lockApp() {
+        if (_isPasscodeEnabled.value) {
+            _isAppLocked.value = true
+        }
+    }
+
     // Selected Theme State
     private val _selectedTheme = MutableStateFlow("arctic")
     val selectedTheme: StateFlow<String> = _selectedTheme.asStateFlow()
@@ -552,11 +641,23 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAdmin = MutableStateFlow(false)
     val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
+    private val _isGuestMode = MutableStateFlow(false)
+    val isGuestMode: StateFlow<Boolean> = _isGuestMode.asStateFlow()
+
     private val _loggedInUser = MutableStateFlow("")
     val loggedInUser: StateFlow<String> = _loggedInUser.asStateFlow()
 
     private val _loginError = MutableStateFlow<String?>(null)
     val loginError: StateFlow<String?> = _loginError.asStateFlow()
+
+    fun loginAsGuest() {
+        _loginError.value = null
+        _isGuestMode.value = true
+        _isAdmin.value = false
+        _loggedInUser.value = "Guest Patient"
+        _isLoggedIn.value = true
+        _isAppLocked.value = false
+    }
 
     private fun saveRememberMeConfig(prefs: android.content.SharedPreferences, rememberMe: Boolean, inputUser: String, pass: String) {
         _rememberMe.value = rememberMe
@@ -900,8 +1001,10 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     fun logout() {
         _isLoggedIn.value = false
         _isAdmin.value = false
+        _isGuestMode.value = false
         _loggedInUser.value = ""
         _loginError.value = null
+        _isAppLocked.value = false
         clearOnlyAutoGeneratedDummyData()
     }
 
@@ -1209,6 +1312,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             val gdEnabled = prefs.getBoolean("gd_sync_enabled", false)
             val gdToken = prefs.getString("gd_access_token", "") ?: ""
             val gdLastSync = prefs.getString("gd_last_sync_time", "Never") ?: "Never"
+            val isPasscodeOn = prefs.getBoolean("app_passcode_enabled", false)
+            val savedPasscode = prefs.getString("app_passcode_pin", "") ?: ""
             val isRememberChecked = prefs.getBoolean("remember_me_checked", false)
             val userVal = if (isRememberChecked) prefs.getString("remember_me_username", "") ?: "" else ""
             val passVal = if (isRememberChecked) prefs.getString("remember_me_password", "") ?: "" else ""
@@ -1221,6 +1326,8 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 _googleDriveSyncEnabled.value = gdEnabled
                 _googleDriveAccessToken.value = gdToken
                 _googleDriveLastSyncTime.value = gdLastSync
+                _isPasscodeEnabled.value = isPasscodeOn && savedPasscode.isNotEmpty()
+                _isAppLocked.value = isPasscodeOn && savedPasscode.isNotEmpty()
                 _rememberMe.value = isRememberChecked
                 if (isRememberChecked) {
                     _savedUsernameOrEmail.value = userVal
