@@ -580,7 +580,7 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                     ) {
                         HorizontalDivider(modifier = Modifier.weight(1f), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         Text(
-                            text = "Or continue without login",
+                            text = "Or continue with",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline,
                             fontWeight = FontWeight.Medium
@@ -589,6 +589,53 @@ fun LoginScreen(viewModel: GlucoViewModel) {
                     }
 
                     Spacer(modifier = Modifier.height(2.dp))
+
+                    // Sign in with Google Button
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                val intent = android.accounts.AccountManager.newChooseAccountIntent(
+                                    null,
+                                    null,
+                                    arrayOf("com.google"),
+                                    null,
+                                    null,
+                                    null,
+                                    null
+                                )
+                                googleAccountPickerLauncher.launch(intent)
+                            } catch (e: Exception) {
+                                android.util.Log.e("GoogleSignIn", "Failed to launch native account picker: ${e.message}", e)
+                                prefilledGoogleEmail = ""
+                                prefilledGoogleName = ""
+                                prefilledGoogleUsername = ""
+                                showGoogleSignInDialog = true
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("google_login_button"),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            GoogleLogoIcon(modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Sign in with Google",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     // Continue as Guest Button
                     OutlinedButton(
