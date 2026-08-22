@@ -200,7 +200,10 @@ class StepCounterService : Service(), SensorEventListener {
         val todayYear = calendar.get(Calendar.YEAR)
         val todayDay = calendar.get(Calendar.DAY_OF_YEAR)
 
-        val allRecords = database.stepDao().getAllStepRecords().firstOrNull() ?: emptyList()
+        val activeProfile = database.profileDao().getProfileSync()
+        val activeProfileId = activeProfile?.id ?: 1
+
+        val allRecords = database.stepDao().getAllStepRecords(activeProfileId).firstOrNull() ?: emptyList()
         val todayRecord = allRecords.find { record ->
             val recCal = Calendar.getInstance().apply { timeInMillis = record.dateTimeMillis }
             recCal.get(Calendar.YEAR) == todayYear && recCal.get(Calendar.DAY_OF_YEAR) == todayDay
@@ -217,6 +220,7 @@ class StepCounterService : Service(), SensorEventListener {
         } else {
             totalToday = count
             val newRecord = StepCountRecord(
+                profileId = activeProfileId,
                 steps = count,
                 dateTimeMillis = System.currentTimeMillis()
             )
@@ -248,7 +252,10 @@ class StepCounterService : Service(), SensorEventListener {
         val todayYear = calendar.get(Calendar.YEAR)
         val todayDay = calendar.get(Calendar.DAY_OF_YEAR)
 
-        val allRecords = database.stepDao().getAllStepRecords().firstOrNull() ?: emptyList()
+        val activeProfile = database.profileDao().getProfileSync()
+        val activeProfileId = activeProfile?.id ?: 1
+
+        val allRecords = database.stepDao().getAllStepRecords(activeProfileId).firstOrNull() ?: emptyList()
         val todaySteps = allRecords.filter { record ->
             val recCal = Calendar.getInstance().apply { timeInMillis = record.dateTimeMillis }
             recCal.get(Calendar.YEAR) == todayYear && recCal.get(Calendar.DAY_OF_YEAR) == todayDay

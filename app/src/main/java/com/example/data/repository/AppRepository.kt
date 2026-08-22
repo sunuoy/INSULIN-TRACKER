@@ -26,7 +26,7 @@ class AppRepository(
     private val stepDao: StepDao
 ) {
     // Insulin Doses
-    val allInsulinRecords: Flow<List<InsulinRecord>> = insulinDao.getAllInsulinRecords()
+    fun allInsulinRecords(profileId: Int): Flow<List<InsulinRecord>> = insulinDao.getAllInsulinRecords(profileId)
 
     suspend fun insertInsulinRecord(record: InsulinRecord) {
         insulinDao.insertInsulinRecord(record)
@@ -40,12 +40,12 @@ class AppRepository(
         insulinDao.deleteInsulinRecordById(id)
     }
 
-    suspend fun clearAllInsulinRecords() {
-        insulinDao.clearAllInsulinRecords()
+    suspend fun clearAllInsulinRecords(profileId: Int) {
+        insulinDao.clearAllInsulinRecords(profileId)
     }
 
     // Glucose Readings
-    val allGlucoseReadings: Flow<List<GlucoseReading>> = glucoseDao.getAllGlucoseReadings()
+    fun allGlucoseReadings(profileId: Int): Flow<List<GlucoseReading>> = glucoseDao.getAllGlucoseReadings(profileId)
 
     suspend fun insertGlucoseReading(reading: GlucoseReading) {
         glucoseDao.insertGlucoseReading(reading)
@@ -59,12 +59,12 @@ class AppRepository(
         glucoseDao.deleteGlucoseReadingById(id)
     }
 
-    suspend fun clearAllGlucoseReadings() {
-        glucoseDao.clearAllGlucoseReadings()
+    suspend fun clearAllGlucoseReadings(profileId: Int) {
+        glucoseDao.clearAllGlucoseReadings(profileId)
     }
 
     // Reminders
-    val allReminders: Flow<List<Reminder>> = reminderDao.getAllReminders()
+    fun allReminders(profileId: Int): Flow<List<Reminder>> = reminderDao.getAllReminders(profileId)
 
     suspend fun insertReminder(reminder: Reminder) {
         reminderDao.insertReminder(reminder)
@@ -94,6 +94,10 @@ class AppRepository(
         return profileDao.getAnyProfileSync()
     }
 
+    suspend fun getProfileByUsername(userName: String): UserProfile? {
+        return profileDao.getProfileByUsername(userName)
+    }
+
     suspend fun insertOrUpdateProfile(profile: UserProfile) {
         profileDao.insertOrUpdateProfile(profile)
     }
@@ -108,7 +112,7 @@ class AppRepository(
     }
 
     // Cartridge Refill Logs
-    val allRefillLogs: Flow<List<CartridgeRefillLog>> = cartridgeRefillLogDao.getAllRefillLogs()
+    fun allRefillLogs(profileId: Int): Flow<List<CartridgeRefillLog>> = cartridgeRefillLogDao.getAllRefillLogs(profileId)
 
     suspend fun insertRefillLog(log: CartridgeRefillLog) {
         cartridgeRefillLogDao.insertRefillLog(log)
@@ -122,12 +126,12 @@ class AppRepository(
         cartridgeRefillLogDao.deleteRefillLogById(id)
     }
 
-    suspend fun clearAllRefillLogs() {
-        cartridgeRefillLogDao.clearAllRefillLogs()
+    suspend fun clearAllRefillLogs(profileId: Int) {
+        cartridgeRefillLogDao.clearAllRefillLogs(profileId)
     }
 
     // Blood Pressure Records
-    val allBloodPressureRecords: Flow<List<BloodPressureRecord>> = bloodPressureDao.getAllBloodPressureRecords()
+    fun allBloodPressureRecords(profileId: Int): Flow<List<BloodPressureRecord>> = bloodPressureDao.getAllBloodPressureRecords(profileId)
 
     suspend fun insertBloodPressureRecord(record: BloodPressureRecord) {
         bloodPressureDao.insertBloodPressureRecord(record)
@@ -141,24 +145,24 @@ class AppRepository(
         bloodPressureDao.deleteBloodPressureRecordById(id)
     }
 
-    suspend fun clearAllBloodPressureRecords() {
-        bloodPressureDao.clearAllBloodPressureRecords()
+    suspend fun clearAllBloodPressureRecords(profileId: Int) {
+        bloodPressureDao.clearAllBloodPressureRecords(profileId)
     }
 
-    suspend fun clearAllReminders() {
-        reminderDao.clearAllReminders()
+    suspend fun clearAllReminders(profileId: Int) {
+        reminderDao.clearAllReminders(profileId)
     }
 
     suspend fun clearAllProfiles() {
         profileDao.clearAllProfiles()
     }
 
-    suspend fun getAnyReminderSync(): Reminder? {
-        return reminderDao.getAnyReminderSync()
+    suspend fun getAnyReminderSync(profileId: Int): Reminder? {
+        return reminderDao.getAnyReminderSync(profileId)
     }
 
     // Step Counts
-    val allStepRecords: Flow<List<StepCountRecord>> = stepDao.getAllStepRecords()
+    fun allStepRecords(profileId: Int): Flow<List<StepCountRecord>> = stepDao.getAllStepRecords(profileId)
 
     suspend fun insertStepRecord(record: StepCountRecord) {
         stepDao.insertStepRecord(record)
@@ -172,11 +176,11 @@ class AppRepository(
         stepDao.deleteStepRecordById(id)
     }
 
-    suspend fun clearAllStepRecords() {
-        stepDao.clearAllStepRecords()
+    suspend fun clearAllStepRecords(profileId: Int) {
+        stepDao.clearAllStepRecords(profileId)
     }
 
-    suspend fun getAnyStepRecordSync(): StepCountRecord? {
-        return stepDao.getAnyStepRecordSync()
+    suspend fun getAnyStepRecordSync(profileId: Int): StepCountRecord? {
+        return stepDao.getAnyStepRecordSync(profileId)
     }
 }

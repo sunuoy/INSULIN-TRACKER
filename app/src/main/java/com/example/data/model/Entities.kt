@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "insulin_records")
 data class InsulinRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Int = 1,
     val insulinType: String, // e.g. "Rapid-acting", "Long-acting", "Intermediate", "Short-acting"
     val doseUnits: Double,
     val dateTimeMillis: Long,
@@ -15,6 +16,7 @@ data class InsulinRecord(
 @Entity(tableName = "glucose_readings")
 data class GlucoseReading(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Int = 1,
     val readingValue: Double, // in mg/dL or mmol/L depending on profile preference
     val mealContext: String, // "Fasting", "Before Meal", "After Meal", "Bedtime", "Other"
     val dateTimeMillis: Long,
@@ -24,6 +26,7 @@ data class GlucoseReading(
 @Entity(tableName = "reminders")
 data class Reminder(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Int = 1,
     val reminderType: String, // "Insulin", "Blood Sugar Check", "Medication"
     val label: String,        // e.g., "Morning Insulin", "After Dinner blood sugar"
     val hour: Int,            // 0 - 23
@@ -54,6 +57,7 @@ data class UserProfile(
 @Entity(tableName = "cartridge_refill_logs")
 data class CartridgeRefillLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Int = 1,
     val capacity: Double,
     val remainingBefore: Double,
     val dateTimeMillis: Long,
@@ -63,6 +67,7 @@ data class CartridgeRefillLog(
 @Entity(tableName = "blood_pressure_records")
 data class BloodPressureRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Int = 1,
     val systolic: Int,
     val diastolic: Int,
     val pulse: Int,
@@ -73,8 +78,8 @@ data class BloodPressureRecord(
 @Entity(tableName = "step_count_records")
 data class StepCountRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val profileId: Int = 1,
     val steps: Int,
     val dateTimeMillis: Long,
     val notes: String = ""
 )
-

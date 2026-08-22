@@ -7,12 +7,13 @@ import com.example.data.model.Reminder
 import com.example.data.model.UserProfile
 import com.example.data.model.CartridgeRefillLog
 import com.example.data.model.BloodPressureRecord
+import com.example.data.model.StepCountRecord
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface InsulinDao {
-    @Query("SELECT * FROM insulin_records ORDER BY dateTimeMillis DESC")
-    fun getAllInsulinRecords(): Flow<List<InsulinRecord>>
+    @Query("SELECT * FROM insulin_records WHERE profileId = :profileId ORDER BY dateTimeMillis DESC")
+    fun getAllInsulinRecords(profileId: Int): Flow<List<InsulinRecord>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertInsulinRecord(record: InsulinRecord)
@@ -23,14 +24,14 @@ interface InsulinDao {
     @Query("DELETE FROM insulin_records WHERE id = :id")
     suspend fun deleteInsulinRecordById(id: Long)
 
-    @Query("DELETE FROM insulin_records")
-    suspend fun clearAllInsulinRecords()
+    @Query("DELETE FROM insulin_records WHERE profileId = :profileId")
+    suspend fun clearAllInsulinRecords(profileId: Int)
 }
 
 @Dao
 interface GlucoseDao {
-    @Query("SELECT * FROM glucose_readings ORDER BY dateTimeMillis DESC")
-    fun getAllGlucoseReadings(): Flow<List<GlucoseReading>>
+    @Query("SELECT * FROM glucose_readings WHERE profileId = :profileId ORDER BY dateTimeMillis DESC")
+    fun getAllGlucoseReadings(profileId: Int): Flow<List<GlucoseReading>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGlucoseReading(reading: GlucoseReading)
@@ -41,14 +42,14 @@ interface GlucoseDao {
     @Query("DELETE FROM glucose_readings WHERE id = :id")
     suspend fun deleteGlucoseReadingById(id: Long)
 
-    @Query("DELETE FROM glucose_readings")
-    suspend fun clearAllGlucoseReadings()
+    @Query("DELETE FROM glucose_readings WHERE profileId = :profileId")
+    suspend fun clearAllGlucoseReadings(profileId: Int)
 }
 
 @Dao
 interface ReminderDao {
-    @Query("SELECT * FROM reminders ORDER BY hour, minute ASC")
-    fun getAllReminders(): Flow<List<Reminder>>
+    @Query("SELECT * FROM reminders WHERE profileId = :profileId ORDER BY hour, minute ASC")
+    fun getAllReminders(profileId: Int): Flow<List<Reminder>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: Reminder)
@@ -62,11 +63,11 @@ interface ReminderDao {
     @Query("UPDATE reminders SET isEnabled = :isEnabled WHERE id = :id")
     suspend fun updateReminderStatus(id: Long, isEnabled: Boolean)
 
-    @Query("SELECT * FROM reminders LIMIT 1")
-    suspend fun getAnyReminderSync(): Reminder?
+    @Query("SELECT * FROM reminders WHERE profileId = :profileId LIMIT 1")
+    suspend fun getAnyReminderSync(profileId: Int): Reminder?
 
-    @Query("DELETE FROM reminders")
-    suspend fun clearAllReminders()
+    @Query("DELETE FROM reminders WHERE profileId = :profileId")
+    suspend fun clearAllReminders(profileId: Int)
 }
 
 @Dao
@@ -82,6 +83,9 @@ interface ProfileDao {
 
     @Query("SELECT * FROM user_profiles LIMIT 1")
     suspend fun getAnyProfileSync(): UserProfile?
+
+    @Query("SELECT * FROM user_profiles WHERE userName = :userName LIMIT 1")
+    suspend fun getProfileByUsername(userName: String): UserProfile?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateProfile(profile: UserProfile)
@@ -101,8 +105,8 @@ interface ProfileDao {
 
 @Dao
 interface CartridgeRefillLogDao {
-    @Query("SELECT * FROM cartridge_refill_logs ORDER BY dateTimeMillis DESC")
-    fun getAllRefillLogs(): Flow<List<CartridgeRefillLog>>
+    @Query("SELECT * FROM cartridge_refill_logs WHERE profileId = :profileId ORDER BY dateTimeMillis DESC")
+    fun getAllRefillLogs(profileId: Int): Flow<List<CartridgeRefillLog>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRefillLog(log: CartridgeRefillLog)
@@ -113,14 +117,14 @@ interface CartridgeRefillLogDao {
     @Query("DELETE FROM cartridge_refill_logs WHERE id = :id")
     suspend fun deleteRefillLogById(id: Long)
 
-    @Query("DELETE FROM cartridge_refill_logs")
-    suspend fun clearAllRefillLogs()
+    @Query("DELETE FROM cartridge_refill_logs WHERE profileId = :profileId")
+    suspend fun clearAllRefillLogs(profileId: Int)
 }
 
 @Dao
 interface BloodPressureDao {
-    @Query("SELECT * FROM blood_pressure_records ORDER BY dateTimeMillis DESC")
-    fun getAllBloodPressureRecords(): Flow<List<BloodPressureRecord>>
+    @Query("SELECT * FROM blood_pressure_records WHERE profileId = :profileId ORDER BY dateTimeMillis DESC")
+    fun getAllBloodPressureRecords(profileId: Int): Flow<List<BloodPressureRecord>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBloodPressureRecord(record: BloodPressureRecord)
@@ -131,28 +135,27 @@ interface BloodPressureDao {
     @Query("DELETE FROM blood_pressure_records WHERE id = :id")
     suspend fun deleteBloodPressureRecordById(id: Long)
 
-    @Query("DELETE FROM blood_pressure_records")
-    suspend fun clearAllBloodPressureRecords()
+    @Query("DELETE FROM blood_pressure_records WHERE profileId = :profileId")
+    suspend fun clearAllBloodPressureRecords(profileId: Int)
 }
 
 @Dao
 interface StepDao {
-    @Query("SELECT * FROM step_count_records ORDER BY dateTimeMillis DESC")
-    fun getAllStepRecords(): Flow<List<com.example.data.model.StepCountRecord>>
+    @Query("SELECT * FROM step_count_records WHERE profileId = :profileId ORDER BY dateTimeMillis DESC")
+    fun getAllStepRecords(profileId: Int): Flow<List<StepCountRecord>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertStepRecord(record: com.example.data.model.StepCountRecord)
+    suspend fun insertStepRecord(record: StepCountRecord)
 
     @Delete
-    suspend fun deleteStepRecord(record: com.example.data.model.StepCountRecord)
+    suspend fun deleteStepRecord(record: StepCountRecord)
 
     @Query("DELETE FROM step_count_records WHERE id = :id")
     suspend fun deleteStepRecordById(id: Long)
 
-    @Query("DELETE FROM step_count_records")
-    suspend fun clearAllStepRecords()
+    @Query("DELETE FROM step_count_records WHERE profileId = :profileId")
+    suspend fun clearAllStepRecords(profileId: Int)
 
-    @Query("SELECT * FROM step_count_records LIMIT 1")
-    suspend fun getAnyStepRecordSync(): com.example.data.model.StepCountRecord?
+    @Query("SELECT * FROM step_count_records WHERE profileId = :profileId LIMIT 1")
+    suspend fun getAnyStepRecordSync(profileId: Int): StepCountRecord?
 }
-

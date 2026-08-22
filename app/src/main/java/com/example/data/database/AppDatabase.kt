@@ -29,7 +29,7 @@ import com.example.data.dao.StepDao
         BloodPressureRecord::class,
         StepCountRecord::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -52,7 +52,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "glucolog_database"
                 )
-                .fallbackToDestructiveMigration(true) // ensures safety during dev schema modifications
+                .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance
                 instance
