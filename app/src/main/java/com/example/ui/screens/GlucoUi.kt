@@ -128,6 +128,8 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
     var editingRefillLog by remember { mutableStateOf<CartridgeRefillLog?>(null) }
     var showBloodPressureDialog by remember { mutableStateOf(false) }
     var showStepDialog by remember { mutableStateOf(false) }
+    var showHypoAlert by remember { mutableStateOf(false) }
+    var hypoAlertValue by remember { mutableStateOf(0.0) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -891,8 +893,18 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
             viewModel = viewModel,
             onDismiss = { showGlucoseDialog = false },
             onSave = {
+                val valueDouble = viewModel.glucValue.toDoubleOrNull() ?: 100.0
+                val unit = profilesState.glucoseUnit
+                val threshold = if (unit == "mmol/L") 3.05 else 55.0
+
                 viewModel.saveGlucoseReading()
                 showGlucoseDialog = false
+
+                if (valueDouble < threshold) {
+                    hypoAlertValue = valueDouble
+                    showHypoAlert = true
+                    viewModel.playEmergencySound()
+                }
             }
         )
     }
@@ -928,17 +940,85 @@ fun GlucoAppLayout(viewModel: GlucoViewModel) {
          )
      }
 
-     if (showStepDialog) {
-         StepFormDialog(
-             viewModel = viewModel,
-             onDismiss = { showStepDialog = false },
-             onSave = {
-                 viewModel.saveStepRecord()
-                 showStepDialog = false
-             }
-         )
-     }
+      if (showStepDialog) {
+          StepFormDialog(
+              viewModel = viewModel,
+              onDismiss = { showStepDialog = false },
+              onSave = {
+                  viewModel.saveStepRecord()
+                  showStepDialog = false
+              }
+          )
+      }
+
+      if (showHypoAlert) {
+          AlertDialog(
+              onDismissRequest = { showHypoAlert = false },
+              title = {
+                  Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(8.dp)
+                  ) {
+                      Icon(
+                          imageVector = Icons.Default.Warning,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.error,
+                          modifier = Modifier.size(28.dp)
+                      )
+                      Text(
+                          text = "Critical Hypoglycemia Warning!",
+                          color = MaterialTheme.colorScheme.error,
+                          fontWeight = FontWeight.Bold
+                      )
+                  }
+              },
+              text = {
+                  Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                      Text(
+                          text = "Your blood sugar is dangerously low: %.1f %s.".format(Locale.US, hypoAlertValue, profilesState.glucoseUnit),
+                          style = MaterialTheme.typography.bodyLarge,
+                          fontWeight = FontWeight.SemiBold
+                      )
+                      Text(
+                          text = "Please consume fast-acting carbohydrates immediately (e.g., fruit juice, candy, or glucose tablets) and notify your contact if needed.",
+                          style = MaterialTheme.typography.bodyMedium
+                      )
+                      if (profilesState.emergencyContactPhone.isNotEmpty()) {
+                          Text(
+                              text = "Emergency Contact: ${profilesState.emergencyContactName} (${profilesState.emergencyContactPhone})",
+                              style = MaterialTheme.typography.bodyMedium,
+                              fontWeight = FontWeight.Bold,
+                              color = MaterialTheme.colorScheme.primary
+                          )
+                      } else {
+                          Text(
+                              text = "Note: No Emergency Contact configured in Settings.",
+                              style = MaterialTheme.typography.bodySmall,
+                              color = MaterialTheme.colorScheme.outline
+                          )
+                      }
+                  }
+              },
+              confirmButton = {
+                  if (profilesState.emergencyContactPhone.isNotEmpty()) {
+                      Button(
+                          onClick = {
+                              viewModel.launchEmergencySMSIntent(context, hypoAlertValue)
+                              showHypoAlert = false
+                          },
+                          colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                      ) {
+                          Text("Send Emergency SMS")
+                      }
+                  }
+              },
+              dismissButton = {
+                  TextButton(onClick = { showHypoAlert = false }) {
+                      Text("I'm Okay / Dismiss")
+                  }
+              }
+          )
+      }
 
     }
 }
-

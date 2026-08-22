@@ -29,7 +29,7 @@ import com.example.data.dao.StepDao
         BloodPressureRecord::class,
         StepCountRecord::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -12,7 +12,7 @@ val gitCommits: Int = providers.exec {
     commandLine("git", "rev-list", "--count", "HEAD")
 }.standardOutput.asText.map { it.trim().toIntOrNull() ?: 1 }.getOrElse(1)
 
-val appVersionName = "1.3.5"
+val appVersionName = "1.3.6"
 
 android {
   namespace = "com.example"

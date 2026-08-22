@@ -42,6 +42,7 @@ fun ReportsScreen(viewModel: GlucoViewModel) {
     val rawBp by viewModel.bloodPressureRecords.collectAsStateWithLifecycle()
     val rawRefills by viewModel.refillLogs.collectAsStateWithLifecycle()
     val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+    val rawSteps by viewModel.stepRecords.collectAsStateWithLifecycle()
 
     val pdfIncludeGlucose by viewModel.pdfIncludeGlucose.collectAsStateWithLifecycle()
     val pdfIncludeInsulin by viewModel.pdfIncludeInsulin.collectAsStateWithLifecycle()
@@ -717,14 +718,24 @@ fun ReportsScreen(viewModel: GlucoViewModel) {
                         Button(
                             onClick = {
                                 try {
-                                    val file = viewModel.generatePdfReport(
-                                        records = rawInsulin,
+                                    val uri = com.example.utils.ReportExporter.generatePDFReport(
+                                        context = context,
+                                        profile = profile,
                                         readings = rawGlucose,
-                                        bpRecords = rawBp,
-                                        refills = rawRefills,
-                                        profile = profile
+                                        doses = rawInsulin,
+                                        steps = rawSteps,
+                                        bloodPressures = rawBp
                                     )
-                                    shareExportedFile(file, "application/pdf", "Share Doctor PDF Report")
+                                    if (uri != null) {
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/pdf"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Share Doctor PDF Report"))
+                                    } else {
+                                        Toast.makeText(context, "Error generating PDF report.", Toast.LENGTH_SHORT).show()
+                                    }
                                 } catch (e: Exception) {
                                     Toast.makeText(context, "Error generating report: ${e.message}", Toast.LENGTH_LONG).show()
                                 }
@@ -740,8 +751,24 @@ fun ReportsScreen(viewModel: GlucoViewModel) {
                         OutlinedButton(
                             onClick = {
                                 try {
-                                    val file = exportCsvReport()
-                                    shareExportedFile(file, "text/csv", "Share CSV Log Data")
+                                    val uri = com.example.utils.ReportExporter.generateCSVReport(
+                                        context = context,
+                                        profile = profile,
+                                        readings = rawGlucose,
+                                        doses = rawInsulin,
+                                        steps = rawSteps,
+                                        bloodPressures = rawBp
+                                    )
+                                    if (uri != null) {
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/csv"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Share CSV Log Data"))
+                                    } else {
+                                        Toast.makeText(context, "Error generating CSV report.", Toast.LENGTH_SHORT).show()
+                                    }
                                 } catch (e: Exception) {
                                     Toast.makeText(context, "Error exporting CSV: ${e.message}", Toast.LENGTH_LONG).show()
                                 }

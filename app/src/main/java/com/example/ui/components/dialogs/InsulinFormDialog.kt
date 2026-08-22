@@ -181,6 +181,124 @@ fun InsulinFormDialog(
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surface
                             )
                         )
+
+                        var showAdvisorDialog by remember { mutableStateOf(false) }
+
+                        TextButton(
+                            onClick = { showAdvisorDialog = true },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Calculate,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Dose Advisor Calculator", fontSize = 12.sp)
+                        }
+
+                        if (showAdvisorDialog) {
+                            val profile by viewModel.userProfile.collectAsStateWithLifecycle()
+                            var carbsInput by remember { mutableStateOf("") }
+                            var currentGlucoseInput by remember { mutableStateOf("") }
+
+                            AlertDialog(
+                                onDismissRequest = { showAdvisorDialog = false },
+                                title = { Text("Insulin Dose Advisor") },
+                                text = {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text(
+                                            text = "Based on profile: Target Glucose: ${profile.targetGlucose} ${profile.glucoseUnit}, ICR: ${profile.carbRatio} g/U, ISF: ${profile.insulinSensitivity} ${profile.glucoseUnit}/U",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+
+                                        OutlinedTextField(
+                                            value = carbsInput,
+                                            onValueChange = { carbsInput = it },
+                                            label = { Text("Carbohydrates to consume (grams)") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            shape = RoundedCornerShape(8.dp),
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        OutlinedTextField(
+                                            value = currentGlucoseInput,
+                                            onValueChange = { currentGlucoseInput = it },
+                                            label = { Text("Current Blood Glucose (${profile.glucoseUnit})") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            shape = RoundedCornerShape(8.dp),
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        val recommendedDose = remember(carbsInput, currentGlucoseInput, profile) {
+                                            val carbs = carbsInput.toDoubleOrNull() ?: 0.0
+                                            val currentGlucose = currentGlucoseInput.toDoubleOrNull() ?: 0.0
+
+                                            val foodDose = if (profile.carbRatio > 0) carbs / profile.carbRatio else 0.0
+                                            val correctionDose = if (currentGlucose > profile.targetGlucose && profile.insulinSensitivity > 0) {
+                                                (currentGlucose - profile.targetGlucose) / profile.insulinSensitivity
+                                            } else {
+                                                0.0
+                                            }
+
+                                            // Round to nearest 0.5 unit
+                                            val total = foodDose + correctionDose
+                                            Math.round(total * 2.0) / 2.0
+                                        }
+
+                                        Text(
+                                            text = "Recommended Dose: $recommendedDose Units",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                        Text(
+                                            text = "• Food Dose: %.2f U\n• Correction Dose: %.2f U".format(
+                                                Locale.US,
+                                                if (profile.carbRatio > 0) (carbsInput.toDoubleOrNull() ?: 0.0) / profile.carbRatio else 0.0,
+                                                if ((currentGlucoseInput.toDoubleOrNull() ?: 0.0) > profile.targetGlucose && profile.insulinSensitivity > 0) {
+                                                    ((currentGlucoseInput.toDoubleOrNull() ?: 0.0) - profile.targetGlucose) / profile.insulinSensitivity
+                                                } else {
+                                                    0.0
+                                                }
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            val carbs = carbsInput.toDoubleOrNull() ?: 0.0
+                                            val currentGlucose = currentGlucoseInput.toDoubleOrNull() ?: 0.0
+                                            val foodDose = if (profile.carbRatio > 0) carbs / profile.carbRatio else 0.0
+                                            val correctionDose = if (currentGlucose > profile.targetGlucose && profile.insulinSensitivity > 0) {
+                                                (currentGlucose - profile.targetGlucose) / profile.insulinSensitivity
+                                            } else {
+                                                0.0
+                                            }
+                                            val total = foodDose + correctionDose
+                                            val rounded = Math.round(total * 2.0) / 2.0
+
+                                            dose = rounded.toString()
+                                            showAdvisorDialog = false
+                                        }
+                                    ) {
+                                        Text("Autofill Dose")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showAdvisorDialog = false }) {
+                                        Text("Dismiss")
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
 

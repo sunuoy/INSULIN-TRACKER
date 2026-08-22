@@ -31,6 +31,10 @@ import org.json.JSONObject
 import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.*
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+
 
 enum class AppScreen {
     HOME,
@@ -2000,6 +2004,43 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun playEmergencySound() {
+        try {
+            val notificationUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+            val ringtone = android.media.RingtoneManager.getRingtone(getApplication(), notificationUri)
+            ringtone.play()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun launchEmergencySMSIntent(context: Context, glucoseValue: Double) {
+        val prof = userProfile.value
+        val phone = prof.emergencyContactPhone
+        if (phone.isEmpty()) {
+            Toast.makeText(context, "No Emergency Contact configured in Settings.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val defaultMsg = "Emergency: My blood glucose is dangerously low at %.1f %s. I need assistance.".format(Locale.US, glucoseValue, prof.glucoseUnit)
+        val finalMsg = if (prof.emergencyCustomMessage.isNotEmpty()) {
+            prof.emergencyCustomMessage.replace("{value}", "%.1f %s".format(Locale.US, glucoseValue, prof.glucoseUnit))
+        } else {
+            defaultMsg
+        }
+
+        try {
+            val uri = Uri.parse("smsto:$phone")
+            val intent = Intent(Intent.ACTION_SENDTO, uri).apply {
+                putExtra("sms_body", finalMsg)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to launch SMS client: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     fun selectProfileFlow(profileId: Int) {
         viewModelScope.launch {
             repository.selectProfile(profileId)
@@ -2963,6 +3004,12 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                         obj.put("stepGoal", item.stepGoal)
                         obj.put("heightCm", item.heightCm)
                         obj.put("weightKg", item.weightKg)
+                        obj.put("carbRatio", item.carbRatio)
+                        obj.put("insulinSensitivity", item.insulinSensitivity)
+                        obj.put("targetGlucose", item.targetGlucose)
+                        obj.put("emergencyContactName", item.emergencyContactName)
+                        obj.put("emergencyContactPhone", item.emergencyContactPhone)
+                        obj.put("emergencyCustomMessage", item.emergencyCustomMessage)
                         profileArr.put(obj)
                     }
                 }
@@ -3022,7 +3069,13 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                                 cartridgeRemaining = obj.optDouble("cartridgeRemaining", currentProf.cartridgeRemaining),
                                 stepGoal = obj.optInt("stepGoal", currentProf.stepGoal),
                                 heightCm = obj.optDouble("heightCm", currentProf.heightCm),
-                                weightKg = obj.optDouble("weightKg", currentProf.weightKg)
+                                weightKg = obj.optDouble("weightKg", currentProf.weightKg),
+                                carbRatio = obj.optDouble("carbRatio", currentProf.carbRatio),
+                                insulinSensitivity = obj.optDouble("insulinSensitivity", currentProf.insulinSensitivity),
+                                targetGlucose = obj.optDouble("targetGlucose", currentProf.targetGlucose),
+                                emergencyContactName = obj.optString("emergencyContactName", currentProf.emergencyContactName),
+                                emergencyContactPhone = obj.optString("emergencyContactPhone", currentProf.emergencyContactPhone),
+                                emergencyCustomMessage = obj.optString("emergencyCustomMessage", currentProf.emergencyCustomMessage)
                             )
                         )
                     }

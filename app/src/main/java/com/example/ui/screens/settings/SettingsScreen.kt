@@ -122,6 +122,13 @@ fun SettingsScreen(
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
+    var emergencyName by remember(currentProfile) { mutableStateOf(currentProfile.emergencyContactName) }
+    var emergencyPhone by remember(currentProfile) { mutableStateOf(currentProfile.emergencyContactPhone) }
+    var emergencyMsg by remember(currentProfile) { mutableStateOf(currentProfile.emergencyCustomMessage) }
+    var carbRatio by remember(currentProfile) { mutableStateOf(currentProfile.carbRatio.toString()) }
+    var sensitivity by remember(currentProfile) { mutableStateOf(currentProfile.insulinSensitivity.toString()) }
+    var targetGlucose by remember(currentProfile) { mutableStateOf(currentProfile.targetGlucose.toString()) }
+
     // Document activity launchers for file-based saving and loading
     val fileExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -467,6 +474,122 @@ fun SettingsScreen(
                                 Text("Lock Now", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
+                    }
+                }
+            }
+
+            // Emergency Contact & Dosing Ratios Card
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("emergency_ratios_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Emergency Contact & Dosing Ratios",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Text(
+                        text = "Configure emergency contacts for low blood sugar warnings and parameters for mealtime dose calculations.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = emergencyName,
+                        onValueChange = { emergencyName = it },
+                        label = { Text("Emergency Contact Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = emergencyPhone,
+                        onValueChange = { emergencyPhone = it },
+                        label = { Text("Emergency Contact Phone Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                    )
+
+                    OutlinedTextField(
+                        value = emergencyMsg,
+                        onValueChange = { emergencyMsg = it },
+                        label = { Text("Emergency Custom Message Template") },
+                        placeholder = { Text("Use {value} for glucose reading") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = targetGlucose,
+                            onValueChange = { targetGlucose = it },
+                            label = { Text("Target Glucose (${currentProfile.glucoseUnit})") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+
+                        OutlinedTextField(
+                            value = carbRatio,
+                            onValueChange = { carbRatio = it },
+                            label = { Text("Carb Ratio (ICR)") },
+                            placeholder = { Text("g/Unit") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = sensitivity,
+                        onValueChange = { sensitivity = it },
+                        label = { Text("Insulin Sensitivity Factor (ISF)") },
+                        placeholder = { Text("${currentProfile.glucoseUnit}/Unit") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+
+                    Button(
+                        onClick = {
+                            val targetVal = targetGlucose.toDoubleOrNull() ?: currentProfile.targetGlucose
+                            val carbVal = carbRatio.toDoubleOrNull() ?: currentProfile.carbRatio
+                            val sensVal = sensitivity.toDoubleOrNull() ?: currentProfile.insulinSensitivity
+
+                            val updated = currentProfile.copy(
+                                emergencyContactName = emergencyName,
+                                emergencyContactPhone = emergencyPhone,
+                                emergencyCustomMessage = emergencyMsg,
+                                carbRatio = carbVal,
+                                insulinSensitivity = sensVal,
+                                targetGlucose = targetVal
+                            )
+                            viewModel.saveProfile(updated)
+                            Toast.makeText(context, "Emergency & Ratios Saved Successfully!", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Save Configurations", fontWeight = FontWeight.Bold)
                     }
                 }
             }

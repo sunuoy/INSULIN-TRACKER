@@ -51,7 +51,13 @@ data class UserProfile(
     val cartridgeRemaining: Double = 0.0,
     val stepGoal: Int = 10000,
     val heightCm: Double = 170.0,
-    val weightKg: Double = 70.0
+    val weightKg: Double = 70.0,
+    val carbRatio: Double = 10.0,
+    val insulinSensitivity: Double = 50.0,
+    val targetGlucose: Double = 100.0,
+    val emergencyContactName: String = "",
+    val emergencyContactPhone: String = "",
+    val emergencyCustomMessage: String = ""
 )
 
 @Entity(tableName = "cartridge_refill_logs")
