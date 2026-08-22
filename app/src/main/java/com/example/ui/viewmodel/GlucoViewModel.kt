@@ -104,6 +104,9 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAppLocked = MutableStateFlow(false)
     val isAppLocked: StateFlow<Boolean> = _isAppLocked.asStateFlow()
 
+    private val _isBiometricEnabled = MutableStateFlow(false)
+    val isBiometricEnabled: StateFlow<Boolean> = _isBiometricEnabled.asStateFlow()
+
     fun isPasscodeConfigured(): Boolean {
         val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
         val pin = prefs.getString("app_passcode_pin", "") ?: ""
@@ -184,6 +187,22 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         if (_isPasscodeEnabled.value) {
             _isAppLocked.value = true
         }
+    }
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        val prefs = getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("app_biometric_enabled", enabled).apply()
+        _isBiometricEnabled.value = enabled
+    }
+
+    fun checkBiometricSupport(context: Context): Boolean {
+        val biometricManager = androidx.biometric.BiometricManager.from(context)
+        val canAuthenticate = biometricManager.canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG)
+        return canAuthenticate == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    fun unlockWithBiometrics() {
+        _isAppLocked.value = false
     }
 
     // Selected Theme State
@@ -1338,6 +1357,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
             val gdLastSync = prefs.getString("gd_last_sync_time", "Never") ?: "Never"
             val isPasscodeOn = prefs.getBoolean("app_passcode_enabled", false)
             val savedPasscode = prefs.getString("app_passcode_pin", "") ?: ""
+            val isBiometricOn = prefs.getBoolean("app_biometric_enabled", false)
             val isRememberChecked = prefs.getBoolean("remember_me_checked", false)
             val userVal = if (isRememberChecked) prefs.getString("remember_me_username", "") ?: "" else ""
             val passVal = if (isRememberChecked) prefs.getString("remember_me_password", "") ?: "" else ""
@@ -1352,6 +1372,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 _googleDriveLastSyncTime.value = gdLastSync
                 _isPasscodeEnabled.value = isPasscodeOn && savedPasscode.isNotEmpty()
                 _isAppLocked.value = isPasscodeOn && savedPasscode.isNotEmpty()
+                _isBiometricEnabled.value = isBiometricOn
                 _rememberMe.value = isRememberChecked
                 if (isRememberChecked) {
                     _savedUsernameOrEmail.value = userVal

@@ -12,7 +12,7 @@ val gitCommits: Int = providers.exec {
     commandLine("git", "rev-list", "--count", "HEAD")
 }.standardOutput.asText.map { it.trim().toIntOrNull() ?: 1 }.getOrElse(1)
 
-val appVersionName = "1.3.4"
+val appVersionName = "1.3.5"
 
 android {
   namespace = "com.example"
@@ -101,6 +101,7 @@ dependencies {
   implementation("androidx.compose.ui:ui-text-google-fonts:1.7.5")
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
+  implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
   // implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)

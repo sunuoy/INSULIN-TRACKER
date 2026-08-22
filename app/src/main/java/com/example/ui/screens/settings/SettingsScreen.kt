@@ -359,6 +359,71 @@ fun SettingsScreen(
                     }
 
                     if (isPasscodeEnabled) {
+                        val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsStateWithLifecycle()
+                        val context = LocalContext.current
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Fingerprint,
+                                        contentDescription = "Biometric Lock Icon",
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "Biometric Unlock",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Unlock with fingerprint or face scan",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = isBiometricEnabled,
+                                onCheckedChange = { enable ->
+                                    if (enable) {
+                                        val hasHardware = viewModel.checkBiometricSupport(context)
+                                        if (hasHardware) {
+                                            viewModel.setBiometricEnabled(true)
+                                            Toast.makeText(context, "Biometric unlock enabled", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Biometric authentication not set up or not supported on this device.", Toast.LENGTH_LONG).show()
+                                        }
+                                    } else {
+                                        viewModel.setBiometricEnabled(false)
+                                        Toast.makeText(context, "Biometric unlock disabled", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                        }
+
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )

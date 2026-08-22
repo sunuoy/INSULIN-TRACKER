@@ -1,5 +1,7 @@
 package com.example.ui.screens.auth
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -47,6 +49,27 @@ fun PasscodeLockScreen(viewModel: GlucoViewModel) {
     var showForgotDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
+    val isPasscodeEnabled by viewModel.isPasscodeEnabled.collectAsState()
+    val isAppLocked by viewModel.isAppLocked.collectAsState()
+
+    // Context Activity Finder helper
+    fun Context.findActivity(): androidx.fragment.app.FragmentActivity? {
+        var ctx = this
+        while (ctx is ContextWrapper) {
+            if (ctx is androidx.fragment.app.FragmentActivity) return ctx
+            ctx = ctx.baseContext
+        }
+        return null
+    }
+
+    LaunchedEffect(isBiometricEnabled, isPasscodeEnabled, isAppLocked) {
+        if (isAppLocked && isPasscodeEnabled && isBiometricEnabled) {
+            val activity = context.findActivity() as? com.example.MainActivity
+            activity?.showBiometricPrompt()
+        }
+    }
 
     // Shake animation offset on error
     val shakeOffset = remember { Animatable(0f) }
@@ -239,6 +262,25 @@ fun PasscodeLockScreen(viewModel: GlucoViewModel) {
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                if (isBiometricEnabled) {
+                    IconButton(
+                        onClick = {
+                            val activity = context.findActivity() as? com.example.MainActivity
+                            activity?.showBiometricPrompt()
+                        },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Fingerprint,
+                            contentDescription = "Trigger Biometric Unlock",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
