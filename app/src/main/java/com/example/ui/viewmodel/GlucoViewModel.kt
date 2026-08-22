@@ -1310,6 +1310,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 activeProfileId.value = pid
             }
             ensureMinimumSetup()
+            triggerAutoRestoreIfNeeded()
         }
     }
 
@@ -3151,6 +3152,7 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
         if (trimmed.isNotEmpty()) {
             _googleDriveSyncEnabled.value = true
             prefs.edit().putBoolean("gd_sync_enabled", true).apply()
+            triggerAutoRestoreIfNeeded()
         }
     }
 
@@ -3259,6 +3261,70 @@ class GlucoViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun triggerAutoRestoreIfNeeded() {
+        val token = _googleDriveAccessToken.value
+        val syncEnabled = _googleDriveSyncEnabled.value
+        if (syncEnabled && token.isNotEmpty()) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val pid = activeProfileId.value
+                    val database = AppDatabase.getDatabase(getApplication())
+                    val glucoseEmpty = database.glucoseDao().getAllGlucoseReadings(pid).first().isEmpty()
+                    val insulinEmpty = database.insulinDao().getAllInsulinRecords(pid).first().isEmpty()
+                    
+                    if (glucoseEmpty && insulinEmpty) {
+                        android.util.Log.d("AutoRestore", "Local records empty for profile $pid. Restoring from Google Drive...")
+                        restoreFromGoogleDrive { success, msg ->
+                            android.util.Log.d("AutoRestore", "Google Drive auto-restore completed: success=$success, msg=$msg")
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("AutoRestore", "Error checking for auto-restore: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun triggerBackgroundBackup() {
+        val token = _googleDriveAccessToken.value
+        val syncEnabled = _googleDriveSyncEnabled.value
+        if (syncEnabled && token.isNotEmpty()) {
+            backgroundScope.launch {
+                try {
+                    android.util.Log.d("BackgroundBackup", "Triggering background backup to Google Drive...")
+                    exportAppDataToJSON { json ->
+                        if (json != null) {
+                            backgroundScope.launch(Dispatchers.IO) {
+                                try {
+                                    val existingFileId = com.example.data.api.GoogleDriveService.findBackupFile(token)
+                                    val success = com.example.data.api.GoogleDriveService.uploadBackupFile(token, json, existingFileId)
+                                    if (success) {
+                                        val nowStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                                        getApplication<Application>().getSharedPreferences("gluco_auth_prefs", Context.MODE_PRIVATE)
+                                            .edit().putString("gd_last_sync_time", nowStr).apply()
+                                        android.util.Log.d("BackgroundBackup", "Background backup succeeded!")
+                                    } else {
+                                        android.util.Log.e("BackgroundBackup", "Background backup failed!")
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("BackgroundBackup", "Exception in background upload: ${e.message}")
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("BackgroundBackup", "Background backup exception: ${e.message}")
+                }
+            }
+        }
+    }
+
+    companion object {
+        private val backgroundScope = kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob()
+        )
     }
 
     fun fetchGoogleDriveTokenAutomatically(context: Context, email: String) {

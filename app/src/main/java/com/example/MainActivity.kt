@@ -76,5 +76,15 @@ class MainActivity : ComponentActivity() {
             startService(serviceIntent)
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.triggerBackgroundBackup()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewModel.triggerBackgroundBackup()
+    }
 }
 
