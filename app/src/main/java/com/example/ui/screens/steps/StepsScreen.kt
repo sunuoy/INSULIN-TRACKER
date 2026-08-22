@@ -281,29 +281,6 @@ fun StepsScreen(
                                 )
                             }
                         }
-
-                        AssistChip(
-                            onClick = {
-                                viewModel.saveStepRecordDirect(100, "Simulated Walk Test")
-                            },
-                            label = {
-                                Text(
-                                    text = "+100",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    softWrap = false
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsWalk,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            },
-                            shape = RoundedCornerShape(10.dp)
-                        )
                     }
                 }
             }
